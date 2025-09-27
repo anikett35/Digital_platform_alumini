@@ -42,6 +42,19 @@ export const authAPI = {
   getAllUsers: (params) => API.get('/auth/users', { params }),
 };
 
+// Posts API functions
+export const postsAPI = {
+  getAllPosts: (params) => API.get('/posts', { params }),
+  getPost: (id) => API.get(`/posts/${id}`),
+  createPost: (postData) => API.post('/posts', postData),
+  updatePost: (id, postData) => API.put(`/posts/${id}`, postData),
+  deletePost: (id) => API.delete(`/posts/${id}`),
+  likePost: (id) => API.post(`/posts/${id}/like`),
+  addComment: (id, commentData) => API.post(`/posts/${id}/comments`, commentData),
+  deleteComment: (postId, commentId) => API.delete(`/posts/${postId}/comments/${commentId}`),
+  getMyPosts: (params) => API.get('/posts/my-posts', { params }),
+};
+
 // Dashboard API functions
 export const dashboardAPI = {
   getStats: (role) => API.get(`/dashboard/stats/${role}`),

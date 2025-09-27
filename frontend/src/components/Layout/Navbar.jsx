@@ -40,12 +40,14 @@ const Navbar = () => {
     student: [
       { name: 'Dashboard', path: '/dashboard' },
       { name: 'Alumni Network', path: '/student/network' },
+      { name: 'Messages', path: '/messages' },
       { name: 'Events', path: '/student/events' },
       { name: 'Jobs', path: '/student/jobs' }
     ],
     alumni: [
       { name: 'Dashboard', path: '/dashboard' },
       { name: 'Network', path: '/alumni/network' },
+      { name: 'Messages', path: '/messages' },
       { name: 'Mentorship', path: '/alumni/mentorship' },
       { name: 'Events', path: '/alumni/events' },
       { name: 'Job Postings', path: '/alumni/jobs' }
@@ -53,6 +55,7 @@ const Navbar = () => {
     admin: [
       { name: 'Dashboard', path: '/dashboard' },
       { name: 'User Management', path: '/admin/users' },
+      { name: 'Messages', path: '/messages' },
       { name: 'Content', path: '/admin/content' },
       { name: 'Analytics', path: '/admin/analytics' },
       { name: 'Settings', path: '/admin/settings' }

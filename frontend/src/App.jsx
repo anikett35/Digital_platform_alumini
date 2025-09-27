@@ -14,6 +14,7 @@ import AlumniDashboard from './components/Dashboard/AlumniDashboard';
 import AdminDashboard from './components/Dashboard/AdminDashboard';
 import Navbar from './components/Layout/Navbar';
 import Loader from './components/Common/Loader';
+import MessagingPage from './components/Messaging/MessagingPage.jsx';
 
 // Utils
 import PrivateRoute from './utils/PrivateRoute';
@@ -83,6 +84,16 @@ const AppContent = () => {
           element={
             <PrivateRoute>
               <DashboardRouter />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Messages Route */}
+        <Route
+          path="/messages"
+          element={
+            <PrivateRoute>
+              <MessagingPage />
             </PrivateRoute>
           }
         />
