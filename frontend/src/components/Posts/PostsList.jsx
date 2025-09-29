@@ -8,12 +8,14 @@ import {
   Building,
   GraduationCap,
   Filter,
-  Search
+  Search,
+  Trash2,
+  Edit
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
 
-const PostCard = ({ post, onLike, onComment }) => {
+const PostCard = ({ post, onLike, onComment, onDelete }) => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(post.likeCount || 0);
@@ -66,6 +68,19 @@ const PostCard = ({ post, onLike, onComment }) => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this post?')) return;
+
+    try {
+      await axios.delete(`/api/posts/${post._id}`);
+      onDelete(post._id);
+      alert('Post deleted successfully');
+    } catch (error) {
+      console.error('Delete error:', error);
+      alert('Failed to delete post');
+    }
+  };
+
   const formatTimeAgo = (date) => {
     const now = new Date();
     const postDate = new Date(date);
@@ -111,6 +126,7 @@ const PostCard = ({ post, onLike, onComment }) => {
               </div>
             </div>
           </div>
+          
           <div className="flex items-center space-x-2">
             <span className={`px-2 py-1 text-xs font-medium text-white rounded-full ${getCategoryColor(post.category)}`}>
               {post.category}
@@ -119,6 +135,17 @@ const PostCard = ({ post, onLike, onComment }) => {
               <Calendar className="w-3 h-3 mr-1" />
               {formatTimeAgo(post.createdAt)}
             </div>
+            
+            {/* Add delete button for post author or admin */}
+            {(user?.id === post.author?._id || user?.role === 'admin') && (
+              <button
+                onClick={handleDelete}
+                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete post"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -276,6 +303,10 @@ const PostsList = ({ onCreatePost }) => {
     setPosts([newPost, ...posts]);
   };
 
+  const handlePostDelete = (deletedPostId) => {
+    setPosts(prev => prev.filter(post => post._id !== deletedPostId));
+  };
+
   const filteredPosts = posts.filter(post => 
     post.title.toLowerCase().includes(filters.search.toLowerCase()) ||
     post.content.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -347,6 +378,7 @@ const PostsList = ({ onCreatePost }) => {
               post={post}
               onLike={() => {}}
               onComment={() => {}}
+              onDelete={handlePostDelete}
             />
           ))
         ) : (
