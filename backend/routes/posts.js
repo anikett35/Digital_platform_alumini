@@ -46,7 +46,7 @@ const commentValidation = [
 router.get('/', auth, getAllPosts);
 router.get('/my-posts', auth, getMyPosts);
 router.get('/:id', auth, getPost);
-
+router.delete('/:id', auth, deletePost);
 // Alumni and Admin can create posts
 router.post('/', auth, checkRole('alumni', 'admin'), postValidation, createPost);
 
