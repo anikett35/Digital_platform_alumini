@@ -21,7 +21,7 @@ const auth = async (req, res, next) => {
       return res.status(401).json({ message: 'Account is deactivated' });
     }
 
-    req.user = user;
+    req.user = user; // attach user to request
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
@@ -30,25 +30,15 @@ const auth = async (req, res, next) => {
 };
 
 // Check if user has required role
-const checkRole = (...roles) => {
-  return (req, res, next) => {
-    if (!req.user) {
-      return res.status(401).json({ message: 'Access denied' });
-    }
-
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Insufficient permissions' });
-    }
-
-    next();
-  };
+const checkRole = (...roles) => (req, res, next) => {
+  if (!req.user) return res.status(401).json({ message: 'Access denied' });
+  if (!roles.includes(req.user.role)) return res.status(403).json({ message: 'Insufficient permissions' });
+  next();
 };
 
 // Admin only middleware
 const adminOnly = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required' });
-  }
+  if (!req.user || req.user.role !== 'admin') return res.status(403).json({ message: 'Admin access required' });
   next();
 };
 

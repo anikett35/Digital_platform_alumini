@@ -12,6 +12,9 @@ dotenv.config();
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
 const messageRoutes = require('./routes/messages'); // Make sure this exists
+const aiMatchingRoutes = require('./routes/aiMatching');
+
+
 
 const app = express();
 const server = http.createServer(app);
@@ -43,6 +46,8 @@ mongoose.connect(process.env.MONGODB_URI, {
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/messages', messageRoutes); // Add this line
+app.use('/api/ai-matching', aiMatchingRoutes);
+
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {

@@ -75,6 +75,54 @@ const userSchema = new mongoose.Schema({
     required: function() {
       return this.role === 'student';
     }
+  },
+  // AI Matching Profile Fields
+  interests: [{
+    type: String,
+    trim: true,
+    lowercase: true
+  }],
+  skills: [{
+    type: String,
+    trim: true,
+    lowercase: true
+  }],
+  careerGoals: [{
+    type: String,
+    trim: true
+  }],
+  industryPreferences: [{
+    type: String,
+    trim: true,
+    lowercase: true
+  }],
+  lookingForMentor: {
+    type: Boolean,
+    default: false
+  },
+  availableAsMentor: {
+    type: Boolean,
+    default: false
+  },
+  mentorshipAreas: [{
+    type: String,
+    trim: true
+  }],
+  maxMentees: {
+    type: Number,
+    default: 3
+  },
+  bio: {
+    type: String,
+    maxlength: 1000
+  },
+  linkedIn: {
+    type: String,
+    trim: true
+  },
+  portfolio: {
+    type: String,
+    trim: true
   }
 }, {
   timestamps: true
