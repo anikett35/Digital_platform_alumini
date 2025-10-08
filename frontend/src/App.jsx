@@ -1,3 +1,4 @@
+// Import React and necessary libraries
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
@@ -15,6 +16,11 @@ import AdminDashboard from './components/Dashboard/AdminDashboard';
 import Navbar from './components/Layout/Navbar';
 import Loader from './components/Common/Loader';
 import MessagingPage from './components/Messaging/MessagingPage.jsx';
+
+// AI Components
+import MentorSuggestions from './components/AI/MentorSuggestions';
+import SetupProfile from './components/AI/SetupProfile';
+import MentorshipDashboard from './components/AI/MentorshipDashboard';
 
 // Utils
 import PrivateRoute from './utils/PrivateRoute';
@@ -88,7 +94,7 @@ const AppContent = () => {
           }
         />
 
-        {/* Messages Route */}
+        {/* Messages */}
         <Route
           path="/messages"
           element={
@@ -98,7 +104,7 @@ const AppContent = () => {
           }
         />
 
-        {/* Role-specific Routes */}
+        {/* Role-based Dashboards */}
         <Route
           path="/student/*"
           element={
@@ -124,9 +130,35 @@ const AppContent = () => {
           }
         />
 
+        {/* ✅ AI Mentorship System Routes */}
+        <Route
+          path="/ai-matching"
+          element={
+            <PrivateRoute>
+              <MentorSuggestions />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/setup-profile"
+          element={
+            <PrivateRoute>
+              <SetupProfile />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/mentorships"
+          element={
+            <PrivateRoute>
+              <MentorshipDashboard />
+            </PrivateRoute>
+          }
+        />
+
         {/* Error Routes */}
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
-        
+
         {/* Default Route */}
         <Route
           path="/"
@@ -134,8 +166,8 @@ const AppContent = () => {
             isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
           }
         />
-        
-        {/* Catch all route */}
+
+        {/* Catch-All */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
