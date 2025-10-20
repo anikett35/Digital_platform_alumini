@@ -10,13 +10,161 @@ import {
   MessageCircle,
   FileText,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Bell,
+  Search,
+  LogOut,
+  Menu,
+  X,
+  Home,
+  GraduationCap,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import MentorSuggestions from '../AI/MentorSuggestions';
 import SetupProfile from '../AI/SetupProfile';
 import MentorshipDashboard from '../AI/MentorshipDashboard';
 import PostsPage from '../Posts/PostsPage';
+
+// Student-specific Navbar Component
+const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  const studentTabs = [
+    { id: 'overview', name: 'Overview', icon: Home },
+    { id: 'ai-matching', name: 'AI Matching', icon: Brain },
+    { id: 'my-mentorships', name: 'My Mentorships', icon: Users },
+    { id: 'posts', name: 'Alumni Posts', icon: FileText },
+    { id: 'messages', name: 'Messages', icon: MessageSquare },
+    { id: 'setup-profile', name: 'Setup Profile', icon: Settings }
+  ];
+
+  const unreadNotifications = notifications.filter(n => !n.read).length;
+
+  return (
+    <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo and Brand */}
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Student Portal</h1>
+              <p className="text-sm text-gray-500">Welcome, {user?.name}</p>
+            </div>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1">
+            {studentTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Section */}
+          <div className="flex items-center space-x-4">
+            {/* Search */}
+            <div className="hidden md:block relative">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
+              />
+            </div>
+
+            {/* Notifications */}
+            <div className="relative">
+              <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <Bell className="w-5 h-5 text-gray-600" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* User Menu */}
+            <div className="flex items-center space-x-3 bg-gray-50 rounded-lg px-3 py-2">
+              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-medium">
+                  {user?.name?.charAt(0) || 'S'}
+                </span>
+              </div>
+              <div className="hidden sm:block text-sm">
+                <p className="font-medium text-gray-800">{user?.name}</p>
+                <p className="text-gray-500 capitalize">Student</p>
+              </div>
+            </div>
+
+            {/* Logout */}
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 py-4">
+            <div className="space-y-2">
+              {studentTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      onTabChange(tab.id);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-lg font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{tab.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+};
 
 // Debug logger
 const debug = (component, message, data = null) => {
@@ -29,18 +177,9 @@ const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
 
   debug('StudentDashboard', 'Component mounted', { user: user?.name, activeTab });
-
-  // Combined tabs from both components
-  const tabs = [
-    { id: 'overview', name: 'Overview', icon: Users },
-    { id: 'ai-matching', name: 'AI Mentor Matching', icon: Brain },
-    { id: 'my-mentorships', name: 'My Mentorships', icon: Users },
-    { id: 'posts', name: 'Alumni Posts', icon: FileText },
-    { id: 'setup-profile', name: 'Setup Profile', icon: Settings }
-  ];
 
   // Stats data with fallbacks
   const stats = [
@@ -174,6 +313,10 @@ const StudentDashboard = () => {
           return <MentorshipDashboard />;
         case 'posts':
           return <PostsPage />;
+        case 'messages':
+          // Navigate to messages page - this will use the route from App.js
+          window.location.href = '/messages';
+          return <div>Redirecting to messages...</div>;
         case 'setup-profile':
           return <SetupProfile />;
         default:
@@ -217,6 +360,14 @@ const StudentDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Student-specific Navbar */}
+      <StudentNavbar 
+        activeTab={activeTab} 
+        onTabChange={handleTabChange} 
+        onLogout={logout}
+        user={user}
+      />
+
       {/* Error Banner */}
       {error && (
         <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
@@ -234,42 +385,6 @@ const StudentDashboard = () => {
           </div>
         </div>
       )}
-
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-8">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold mb-2">
-            Welcome back, {user?.name || 'Student'}!
-          </h1>
-          <p className="text-blue-100">Student Dashboard</p>
-        </div>
-      </div>
-
-      {/* Tabs Navigation */}
-      <div className="border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-6">
-          <nav className="flex space-x-8 overflow-x-auto">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm transition-colors whitespace-nowrap min-w-0 ${
-                    activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                  aria-current={activeTab === tab.id ? 'page' : undefined}
-                >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  <span className="truncate">{tab.name}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto p-6">

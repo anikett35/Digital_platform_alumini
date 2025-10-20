@@ -45,8 +45,8 @@ const Navbar = () => {
       { name: 'Jobs', path: '/student/jobs' }
     ],
     alumni: [
-      { name: 'Dashboard', path: '/dashboard' },
-      { name: 'Network', path: '/alumni/network' },
+      { name: 'Dashboard', path: '/AlumniDashboard ' },
+      { name: 'Network', path: '' },
       { name: 'Messages', path: '/messages' },
       { name: 'Mentorship', path: '/alumni/mentorship' },
       { name: 'Events', path: '/alumni/events' },

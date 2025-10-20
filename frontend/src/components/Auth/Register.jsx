@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, User, Mail, Lock, GraduationCap, UserCog, Users, Phone, Building, Calendar, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -24,9 +24,12 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   const { register, error, clearError } = useAuth();
   const navigate = useNavigate();
+
+  const floatingElementsRef = useRef([]);
 
   const roles = [
     { value: 'student', label: 'Student', icon: User, color: 'bg-blue-500' },
@@ -47,6 +50,48 @@ const Register = () => {
     'Other'
   ];
 
+  // Initialize animations
+  useEffect(() => {
+    setIsVisible(true);
+    
+    // Start floating animation
+    const floatingElements = document.querySelectorAll('.floating-element');
+    floatingElementsRef.current = Array.from(floatingElements);
+    startFloatingAnimation();
+  }, []);
+
+  // Floating animation using requestAnimationFrame
+  const startFloatingAnimation = () => {
+    let time = 0;
+    
+    const animate = () => {
+      time += 0.02;
+      floatingElementsRef.current.forEach((el, index) => {
+        if (el) {
+          const y = Math.sin(time + index) * 15;
+          const rotation = Math.sin(time * 0.5 + index) * 3;
+          el.style.transform = `translateY(${y}px) rotate(${rotation}deg)`;
+        }
+      });
+      requestAnimationFrame(animate);
+    };
+    
+    animate();
+  };
+
+  // Error animation
+  useEffect(() => {
+    if (error) {
+      const errorElement = document.querySelector('.error-message');
+      if (errorElement) {
+        errorElement.style.animation = 'none';
+        setTimeout(() => {
+          errorElement.style.animation = 'shake 0.5s ease-in-out';
+        }, 10);
+      }
+    }
+  }, [error]);
+
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -59,7 +104,6 @@ const Register = () => {
     setFormData({
       ...formData,
       role,
-      // Clear role-specific fields when changing role
       studentId: '',
       graduationYear: '',
       currentCompany: '',
@@ -71,7 +115,6 @@ const Register = () => {
   };
 
   const validateForm = () => {
-    // Basic validation
     if (!formData.name || !formData.email || !formData.department) {
       alert('Please fill in all required fields');
       return false;
@@ -87,7 +130,6 @@ const Register = () => {
       return false;
     }
 
-    // Role-specific validation
     if (formData.role === 'student') {
       if (!formData.studentId || !formData.currentYear || !formData.enrollmentYear) {
         alert('Please fill all student-specific fields!');
@@ -110,7 +152,15 @@ const Register = () => {
 
     setIsLoading(true);
 
-    // Prepare the data to send
+    // Button click animation
+    const button = e.target.querySelector('button[type="submit"]');
+    if (button) {
+      button.style.transform = 'scale(0.95)';
+      setTimeout(() => {
+        button.style.transform = 'scale(1)';
+      }, 100);
+    }
+
     const dataToSend = {
       name: formData.name,
       email: formData.email,
@@ -120,7 +170,6 @@ const Register = () => {
       phoneNumber: formData.phoneNumber || ''
     };
 
-    // Add role-specific fields
     if (formData.role === 'student') {
       dataToSend.studentId = formData.studentId;
       dataToSend.currentYear = parseInt(formData.currentYear);
@@ -138,14 +187,17 @@ const Register = () => {
       const result = await register(dataToSend);
       
       if (result.success) {
-        alert('Registration successful! Welcome aboard!');
+        toast.success('🎉 Registration successful! Welcome aboard!', {
+          position: "top-right",
+          autoClose: 3000,
+        });
         navigate('/dashboard');
       } else {
-        alert(result.error || 'Registration failed');
+        toast.error(result.error || 'Registration failed');
       }
     } catch (err) {
       console.error('Registration error:', err);
-      alert('An unexpected error occurred');
+      toast.error('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +207,7 @@ const Register = () => {
     if (formData.role === 'student') {
       return (
         <>
-          <div>
+          <div className="animate-slide-in-left">
             <label className="block text-white/90 text-sm font-medium mb-2">
               Student ID *
             </label>
@@ -164,13 +216,13 @@ const Register = () => {
               name="studentId"
               value={formData.studentId}
               onChange={handleInputChange}
-              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
               placeholder="Enter your student ID"
               required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-4 animate-slide-in-right">
             <div>
               <label className="block text-white/90 text-sm font-medium mb-2">
                 Current Year *
@@ -179,7 +231,7 @@ const Register = () => {
                 name="currentYear"
                 value={formData.currentYear}
                 onChange={handleInputChange}
-                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                 required
               >
                 <option value="">Select Year</option>
@@ -200,7 +252,7 @@ const Register = () => {
                 name="enrollmentYear"
                 value={formData.enrollmentYear}
                 onChange={handleInputChange}
-                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                 placeholder="2020"
                 min="2000"
                 max="2030"
@@ -213,7 +265,7 @@ const Register = () => {
     } else if (formData.role === 'alumni') {
       return (
         <>
-          <div>
+          <div className="animate-slide-in-left">
             <label className="block text-white/90 text-sm font-medium mb-2">
               Student ID *
             </label>
@@ -222,13 +274,13 @@ const Register = () => {
               name="studentId"
               value={formData.studentId}
               onChange={handleInputChange}
-              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
               placeholder="Enter your student ID"
               required
             />
           </div>
 
-          <div>
+          <div className="animate-slide-in-right">
             <label className="block text-white/90 text-sm font-medium mb-2">
               Graduation Year *
             </label>
@@ -237,7 +289,7 @@ const Register = () => {
               name="graduationYear"
               value={formData.graduationYear}
               onChange={handleInputChange}
-              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
               placeholder="2020"
               min="1950"
               max="2030"
@@ -245,7 +297,7 @@ const Register = () => {
             />
           </div>
 
-          <div>
+          <div className="animate-slide-in-left">
             <label className="block text-white/90 text-sm font-medium mb-2">
               Current Company *
             </label>
@@ -256,14 +308,14 @@ const Register = () => {
                 name="currentCompany"
                 value={formData.currentCompany}
                 onChange={handleInputChange}
-                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                 placeholder="Enter your current company"
                 required
               />
             </div>
           </div>
 
-          <div>
+          <div className="animate-slide-in-right">
             <label className="block text-white/90 text-sm font-medium mb-2">
               Current Position *
             </label>
@@ -272,7 +324,7 @@ const Register = () => {
               name="currentPosition"
               value={formData.currentPosition}
               onChange={handleInputChange}
-              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
               placeholder="Enter your current position"
               required
             />
@@ -284,21 +336,61 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl">
-        <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/20 p-8">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 relative overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #3730a3 100%)'
+      }}
+    >
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Floating geometric shapes */}
+        <div 
+          className="floating-element absolute top-1/4 left-1/4 w-8 h-8 border-2 border-blue-400/30 rounded-lg transition-transform duration-1000"
+        ></div>
+        <div 
+          className="floating-element absolute top-1/3 right-1/4 w-6 h-6 border-2 border-purple-400/30 rounded-full transition-transform duration-1000"
+        ></div>
+        <div 
+          className="floating-element absolute bottom-1/4 left-1/3 w-10 h-10 border-2 border-cyan-400/30 rotate-45 transition-transform duration-1000"
+        ></div>
+        <div 
+          className="floating-element absolute bottom-1/3 right-1/3 w-12 h-12 border-2 border-pink-400/30 rounded-full transition-transform duration-1000"
+        ></div>
+        
+        {/* Animated gradient orbs */}
+        <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
+
+      <div className="w-full max-w-2xl relative z-10">
+        <div 
+          className={`
+            bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 p-8 
+            hover:border-gray-600/50 transition-all duration-500
+            ${isVisible ? 'animate-fade-in-up' : 'opacity-0 translate-y-10'}
+          `}
+          style={{
+            background: 'radial-gradient(circle at top right, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9))',
+            animation: 'fadeInUp 0.8s ease-out'
+          }}
+        >
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users className="w-10 h-10 text-white" />
+            <div className="relative inline-block mb-4 animate-bounce-gentle">
+              <div className="relative w-20 h-20 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+                <Users className="w-10 h-10 text-white" />
+                <div className="absolute inset-0 border-2 border-green-400/50 rounded-full animate-ping"></div>
+              </div>
             </div>
-            <h2 className="text-3xl font-bold text-white mb-2">Join Our Community</h2>
-            <p className="text-white/80">Create your account to get started</p>
+            <h2 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-2 animate-fade-in">
+              Join Our Community
+            </h2>
+            <p className="text-gray-400 animate-fade-in-delay">Create your account to get started</p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center space-x-2">
+            <div className="error-message mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center space-x-2 backdrop-blur-sm">
               <AlertCircle className="w-5 h-5 text-red-400" />
               <span className="text-red-200 text-sm">{error}</span>
             </div>
@@ -307,7 +399,7 @@ const Register = () => {
           {/* Registration Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Role Selection */}
-            <div>
+            <div className="animate-fade-in">
               <label className="block text-white/90 text-sm font-medium mb-3">
                 Select Role *
               </label>
@@ -319,9 +411,9 @@ const Register = () => {
                       key={role.value}
                       type="button"
                       onClick={() => handleRoleChange(role.value)}
-                      className={`p-4 rounded-xl border-2 transition-all duration-200 ${
+                      className={`p-4 rounded-xl border-2 transition-all duration-200 transform hover:scale-105 ${
                         formData.role === role.value
-                          ? `${role.color} border-white/30 shadow-lg`
+                          ? `${role.color} border-white/30 shadow-lg scale-105`
                           : 'bg-white/10 border-white/20 hover:bg-white/20'
                       }`}
                     >
@@ -337,7 +429,7 @@ const Register = () => {
 
             {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="animate-slide-in-left">
                 <label className="block text-white/90 text-sm font-medium mb-2">
                   Full Name *
                 </label>
@@ -348,14 +440,14 @@ const Register = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                     placeholder="Enter your full name"
                     required
                   />
                 </div>
               </div>
 
-              <div>
+              <div className="animate-slide-in-right">
                 <label className="block text-white/90 text-sm font-medium mb-2">
                   Email Address *
                 </label>
@@ -366,7 +458,7 @@ const Register = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                     placeholder="Enter your email"
                     required
                   />
@@ -376,7 +468,7 @@ const Register = () => {
 
             {/* Password Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="animate-slide-in-left">
                 <label className="block text-white/90 text-sm font-medium mb-2">
                   Password *
                 </label>
@@ -387,21 +479,21 @@ const Register = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                     placeholder="Create password"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors duration-200"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
               </div>
 
-              <div>
+              <div className="animate-slide-in-right">
                 <label className="block text-white/90 text-sm font-medium mb-2">
                   Confirm Password *
                 </label>
@@ -412,14 +504,14 @@ const Register = () => {
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                     placeholder="Confirm password"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors duration-200"
                   >
                     {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -429,7 +521,7 @@ const Register = () => {
 
             {/* Department and Phone */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="animate-slide-in-left">
                 <label className="block text-white/90 text-sm font-medium mb-2">
                   Department *
                 </label>
@@ -437,7 +529,7 @@ const Register = () => {
                   name="department"
                   value={formData.department}
                   onChange={handleInputChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                   required
                 >
                   <option value="">Select Department</option>
@@ -449,7 +541,7 @@ const Register = () => {
                 </select>
               </div>
 
-              <div>
+              <div className="animate-slide-in-right">
                 <label className="block text-white/90 text-sm font-medium mb-2">
                   Phone Number
                 </label>
@@ -460,7 +552,7 @@ const Register = () => {
                     name="phoneNumber"
                     value={formData.phoneNumber}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                     placeholder="Enter phone number"
                   />
                 </div>
@@ -471,32 +563,37 @@ const Register = () => {
             {renderRoleSpecificFields()}
 
             {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:from-green-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  <span>Creating Account...</span>
-                </>
-              ) : (
-                <>
-                  <User className="w-5 h-5" />
-                  <span>Create Account</span>
-                </>
-              )}
-            </button>
+            <div className="animate-fade-in-delay-3">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-green-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-green-500/25 hover:scale-105 active:scale-95 relative overflow-hidden group"
+              >
+                {/* Button Shine Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                    <span>Creating Account...</span>
+                  </>
+                ) : (
+                  <>
+                    <User className="w-5 h-5" />
+                    <span>Create Account</span>
+                  </>
+                )}
+              </button>
+            </div>
           </form>
 
           {/* Links */}
-          <div className="mt-6 text-center">
-            <div className="text-white/60 text-sm">
+          <div className="mt-6 text-center animate-fade-in-delay-4">
+            <div className="text-gray-400 text-sm">
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="text-white hover:text-blue-300 font-medium transition-colors"
+                className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors hover:underline"
               >
                 Sign in here
               </Link>
@@ -504,6 +601,89 @@ const Register = () => {
           </div>
         </div>
       </div>
+
+      {/* Add custom animations to your CSS */}
+      <style jsx>{`
+        @keyframes fadeInUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-10px); }
+          75% { transform: translateX(10px); }
+        }
+
+        @keyframes bounceGentle {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+
+        @keyframes slideInLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        .animate-fade-in-up {
+          animation: fadeInUp 0.8s ease-out;
+        }
+
+        .animate-fade-in {
+          animation: fadeInUp 0.6s ease-out 0.2s both;
+        }
+
+        .animate-fade-in-delay {
+          animation: fadeInUp 0.6s ease-out 0.4s both;
+        }
+
+        .animate-slide-in-left {
+          animation: slideInLeft 0.6s ease-out 0.6s both;
+        }
+
+        .animate-slide-in-right {
+          animation: slideInRight 0.6s ease-out 0.8s both;
+        }
+
+        .animate-fade-in-delay-3 {
+          animation: fadeInUp 0.6s ease-out 1.2s both;
+        }
+
+        .animate-fade-in-delay-4 {
+          animation: fadeInUp 0.6s ease-out 1.6s both;
+        }
+
+        .animate-bounce-gentle {
+          animation: bounceGentle 3s ease-in-out infinite;
+        }
+
+        .error-message {
+          animation: shake 0.5s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 };

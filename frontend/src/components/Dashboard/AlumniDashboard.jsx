@@ -12,12 +12,155 @@ import {
   Bell,
   Search,
   LogOut,
-  Shield
+  Shield,
+  Menu,
+  X,
+  Home,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import PostsPage from '../Posts/PostsPage';
 import SetupProfile from '../AI/SetupProfile';
 import MentorshipDashboard from '../AI/MentorshipDashboard';
+
+// Alumni-specific Navbar Component
+const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+
+  const alumniTabs = [
+    { id: 'dashboard', name: 'Dashboard', icon: Home },
+    { id: 'posts', name: 'Community Posts', icon: FileText },
+    { id: 'mentorship', name: 'Mentorship', icon: Users },
+    { id: 'messages', name: 'Messages', icon: MessageSquare },
+    { id: 'setup-profile', name: 'Mentor Profile', icon: Settings }
+  ];
+
+  const unreadNotifications = notifications.filter(n => !n.read).length;
+
+  return (
+    <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo and Brand */}
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+              <GraduationCap className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">Alumni Portal</h1>
+              <p className="text-sm text-gray-500">Welcome back, {user?.name}</p>
+            </div>
+          </div>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-1">
+            {alumniTabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => onTabChange(tab.id)}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    activeTab === tab.id
+                      ? 'bg-green-100 text-green-700 border border-green-200'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.name}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Right Section */}
+          <div className="flex items-center space-x-4">
+            {/* Search */}
+            <div className="hidden md:block relative">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-64"
+              />
+            </div>
+
+            {/* Notifications */}
+            <div className="relative">
+              <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                <Bell className="w-5 h-5 text-gray-600" />
+                {unreadNotifications > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {/* User Menu */}
+            <div className="flex items-center space-x-3 bg-gray-50 rounded-lg px-3 py-2">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-sm font-medium">
+                  {user?.name?.charAt(0) || 'A'}
+                </span>
+              </div>
+              <div className="hidden sm:block text-sm">
+                <p className="font-medium text-gray-800">{user?.name}</p>
+                <p className="text-gray-500 capitalize">Alumni</p>
+              </div>
+            </div>
+
+            {/* Logout */}
+            <button
+              onClick={onLogout}
+              className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </button>
+
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 py-4">
+            <div className="space-y-2">
+              {alumniTabs.map((tab) => {
+                const Icon = tab.icon;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => {
+                      onTabChange(tab.id);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-lg font-medium transition-colors ${
+                      activeTab === tab.id
+                        ? 'bg-green-100 text-green-700 border border-green-200'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{tab.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
+};
 
 const AlumniDashboard = () => {
   const { user, logout } = useAuth();
@@ -59,6 +202,7 @@ const AlumniDashboard = () => {
     { id: 'dashboard', name: 'Dashboard', icon: GraduationCap, description: 'Overview and analytics' },
     { id: 'posts', name: 'Community Posts', icon: FileText, description: 'Share and engage with community' },
     { id: 'mentorship', name: 'Mentorship', icon: Users, description: 'Manage mentorship requests' },
+    { id: 'messages', name: 'Messages', icon: MessageSquare, description: 'Chat with connections' },
     { id: 'setup-profile', name: 'Mentor Profile', icon: Settings, description: 'Setup AI matching profile' }
   ];
 
@@ -92,64 +236,15 @@ const AlumniDashboard = () => {
         return <PostsPage />;
       case 'mentorship':
         return <MentorshipDashboard />;
+      case 'messages':
+        // Navigate to messages page - this will use the route from App.js
+        window.location.href = '/messages';
+        return <div>Redirecting to messages...</div>;
       case 'setup-profile':
         return <SetupProfile />;
       default:
         return (
           <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-            {/* Header */}
-            <div className="bg-white shadow-sm border-b">
-              <div className="container mx-auto px-4 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center">
-                      <GraduationCap className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h1 className="text-2xl font-bold text-gray-800">Alumni Dashboard</h1>
-                      <p className="text-gray-600">Welcome back, {user?.name || 'Alumni'}!</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-4">
-                    {/* Notifications */}
-                    <div className="relative">
-                      <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                        <Bell className="w-5 h-5 text-gray-600" />
-                        {unreadNotifications > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                            {unreadNotifications}
-                          </span>
-                        )}
-                      </button>
-                    </div>
-                    
-                    {/* User Menu */}
-                    <div className="flex items-center space-x-2 bg-gray-50 rounded-lg px-3 py-2">
-                      <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
-                          {user?.name?.charAt(0) || 'A'}
-                        </span>
-                      </div>
-                      <div className="text-sm">
-                        <p className="font-medium text-gray-800">{user?.name}</p>
-                        <p className="text-gray-500 capitalize">{user?.role}</p>
-                      </div>
-                    </div>
-                    
-                    {/* Logout Button */}
-                    <button
-                      onClick={logout}
-                      className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
-                      title="Logout"
-                    >
-                      <LogOut className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             <div className="container mx-auto px-4 py-8">
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 {/* Navigation Tabs */}
@@ -242,6 +337,13 @@ const AlumniDashboard = () => {
                       action: () => handleTabChange('mentorship')
                     },
                     { 
+                      title: 'Messages', 
+                      description: 'Chat with your connections',
+                      icon: MessageSquare, 
+                      color: 'from-teal-400 to-teal-600',
+                      action: () => handleTabChange('messages')
+                    },
+                    { 
                       title: 'AI Profile Setup', 
                       description: 'Optimize your matching profile',
                       icon: Settings, 
@@ -261,13 +363,6 @@ const AlumniDashboard = () => {
                       icon: Calendar, 
                       color: 'from-pink-400 to-pink-600',
                       action: () => console.log('Navigate to Events')
-                    },
-                    { 
-                      title: 'Support Institution', 
-                      description: 'Make donations and contributions',
-                      icon: Heart, 
-                      color: 'from-indigo-400 to-indigo-600',
-                      action: () => console.log('Navigate to Donations')
                     }
                   ].map((item, index) => (
                     <div
@@ -302,7 +397,19 @@ const AlumniDashboard = () => {
     }
   };
 
-  return renderContent();
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Alumni-specific Navbar */}
+      <AlumniNavbar 
+        activeTab={activeTab} 
+        onTabChange={setActiveTab} 
+        onLogout={logout}
+        user={user}
+      />
+
+      {renderContent()}
+    </div>
+  );
 };
 
 export default AlumniDashboard;

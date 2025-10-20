@@ -13,7 +13,6 @@ import Register from './components/Auth/Register';
 import StudentDashboard from './components/Dashboard/StudentDashboard';
 import AlumniDashboard from './components/Dashboard/AlumniDashboard';
 import AdminDashboard from './components/Dashboard/AdminDashboard';
-import Navbar from './components/Layout/Navbar';
 import Loader from './components/Common/Loader';
 import MessagingPage from './components/Messaging/MessagingPage.jsx';
 
@@ -68,7 +67,6 @@ const AppContent = () => {
 
   return (
     <div className="App">
-      {isAuthenticated && <Navbar />}
       <Routes>
         {/* Public Routes */}
         <Route 
