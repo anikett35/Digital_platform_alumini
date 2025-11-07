@@ -33,6 +33,7 @@ import MentorSuggestions from '../AI/MentorSuggestions';
 import SetupProfile from '../AI/SetupProfile';
 import MentorshipDashboard from '../AI/MentorshipDashboard';
 import PostsPage from '../Posts/PostsPage';
+import Chatbot from '../Common/Chatbot';
 
 // Student-specific Navbar Component
 const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
@@ -442,6 +443,9 @@ const StudentDashboard = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {renderContent()}
       </div>
+
+      {/* AI Chatbot */}
+      <Chatbot />
     </div>
   );
 };

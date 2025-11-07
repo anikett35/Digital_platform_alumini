@@ -16,17 +16,25 @@ import {
   Menu,
   X,
   Home,
-  MessageSquare
+  MessageSquare,
+  ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import PostsPage from '../Posts/PostsPage';
 import SetupProfile from '../AI/SetupProfile';
 import MentorshipDashboard from '../AI/MentorshipDashboard';
 
-// Alumni-specific Navbar Component
+// Updated Alumni-specific Navbar Component with StudentNavbar styling
 const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const alumniTabs = [
     { id: 'dashboard', name: 'Dashboard', icon: Home },
@@ -38,44 +46,65 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
 
   const unreadNotifications = notifications.filter(n => !n.read).length;
 
+  const handleTabClick = (tabId) => {
+    if (tabId === 'messages') {
+      window.location.href = '/messages';
+      return;
+    }
+    onTabChange(tabId);
+    setIsMobileMenuOpen(false);
+  };
+
   return (
-    <nav className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+    <nav className={`sticky top-0 z-50 transition-all duration-300 ${
+      isScrolled ? 'bg-white/80 backdrop-blur-xl shadow-lg' : 'bg-white shadow-md'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo and Brand */}
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-              <GraduationCap className="w-6 h-6 text-white" />
+        <div className="flex justify-between items-center h-16 lg:h-20">
+          {/* Logo */}
+          <div className="flex items-center space-x-3 group cursor-pointer">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity"></div>
+              <div className="relative w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center transform group-hover:scale-105 transition-transform">
+                <GraduationCap className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+              </div>
             </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Alumni Portal</h1>
-              <p className="text-sm text-gray-500">Welcome back, {user?.name}</p>
+            <div className="hidden sm:block">
+              <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                AlumniConnect
+              </h1>
+              <p className="text-xs text-gray-500">Welcome, {user?.name?.split(' ')[0]}</p>
             </div>
           </div>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden lg:flex items-center space-x-1 bg-gray-50 rounded-xl p-1.5">
             {alumniTabs.map((tab) => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              
               return (
                 <button
                   key={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-green-100 text-green-700 border border-green-200'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  onClick={() => handleTabClick(tab.id)}
+                  className={`relative flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                    isActive
+                      ? 'text-green-700 shadow-md'
+                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.name}</span>
+                  {isActive && (
+                    <div className="absolute inset-0 bg-white rounded-lg shadow-sm"></div>
+                  )}
+                  <Icon className={`w-4 h-4 relative z-10 ${isActive ? 'text-green-600' : ''}`} />
+                  <span className="relative z-10 text-sm">{tab.name}</span>
                 </button>
               );
             })}
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 lg:space-x-3">
             {/* Search */}
             <div className="hidden md:block relative">
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
@@ -87,34 +116,30 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
             </div>
 
             {/* Notifications */}
-            <div className="relative">
-              <button className="p-2 rounded-full hover:bg-gray-100 transition-colors">
-                <Bell className="w-5 h-5 text-gray-600" />
-                {unreadNotifications > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {unreadNotifications}
-                  </span>
-                )}
-              </button>
-            </div>
+            <button className="relative p-2 lg:p-2.5 rounded-xl hover:bg-gray-100 transition-all duration-200 group">
+              <Bell className="w-5 h-5 text-gray-600 group-hover:text-green-600 transition-colors" />
+              {unreadNotifications > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+              )}
+            </button>
 
-            {/* User Menu */}
-            <div className="flex items-center space-x-3 bg-gray-50 rounded-lg px-3 py-2">
-              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-sm font-medium">
+            {/* User Menu - Fixed Alignment */}
+            <div className="hidden sm:flex items-center space-x-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl px-3 lg:px-4 py-2 border border-green-100">
+              <div className="w-8 h-8 lg:w-9 lg:h-9 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg flex items-center justify-center shadow-md mr-2">
+                <span className="text-white text-sm font-semibold">
                   {user?.name?.charAt(0) || 'A'}
                 </span>
               </div>
-              <div className="hidden sm:block text-sm">
-                <p className="font-medium text-gray-800">{user?.name}</p>
-                <p className="text-gray-500 capitalize">Alumni</p>
+              <div className="hidden md:block text-sm text-left">
+                <p className="font-semibold text-gray-800 leading-tight">{user?.name}</p>
+                <p className="text-xs text-gray-500 capitalize">{user?.role || 'Alumni'}</p>
               </div>
             </div>
 
             {/* Logout */}
             <button
               onClick={onLogout}
-              className="p-2 rounded-lg hover:bg-red-50 text-red-600 transition-colors"
+              className="hidden sm:block p-2 lg:p-2.5 rounded-xl hover:bg-red-50 text-red-600 transition-all duration-200 hover:scale-105"
               title="Logout"
             >
               <LogOut className="w-5 h-5" />
@@ -123,7 +148,7 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-all duration-200"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
@@ -132,28 +157,35 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t border-gray-200 py-4">
-            <div className="space-y-2">
+          <div className="lg:hidden border-t border-gray-100 py-4 animate-fadeIn">
+            <div className="space-y-1">
               {alumniTabs.map((tab) => {
                 const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => {
-                      onTabChange(tab.id);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-lg font-medium transition-colors ${
-                      activeTab === tab.id
-                        ? 'bg-green-100 text-green-700 border border-green-200'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                    onClick={() => handleTabClick(tab.id)}
+                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200 shadow-sm'
+                        : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{tab.name}</span>
+                    {isActive && <ArrowRight className="w-4 h-4 ml-auto" />}
                   </button>
                 );
               })}
+              <button
+                onClick={onLogout}
+                className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-all duration-200 mt-4 border-t border-gray-100 pt-4"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         )}
@@ -398,8 +430,8 @@ const AlumniDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Alumni-specific Navbar */}
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/30">
+      {/* Updated Alumni-specific Navbar */}
       <AlumniNavbar 
         activeTab={activeTab} 
         onTabChange={setActiveTab} 

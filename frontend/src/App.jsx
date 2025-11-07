@@ -15,6 +15,7 @@ import AlumniDashboard from './components/Dashboard/AlumniDashboard';
 import AdminDashboard from './components/Dashboard/AdminDashboard';
 import Loader from './components/Common/Loader';
 import MessagingPage from './components/Messaging/MessagingPage.jsx';
+import Chatbot from './components/Common/Chatbot'; // ✅ Add Chatbot
 
 // AI Components
 import MentorSuggestions from './components/AI/MentorSuggestions';
@@ -67,6 +68,7 @@ const AppContent = () => {
 
   return (
     <div className="App">
+      {/* Routes */}
       <Routes>
         {/* Public Routes */}
         <Route 
@@ -128,7 +130,7 @@ const AppContent = () => {
           }
         />
 
-        {/* ✅ AI Mentorship System Routes */}
+        {/* AI Mentorship System Routes */}
         <Route
           path="/ai-matching"
           element={
@@ -168,6 +170,9 @@ const AppContent = () => {
         {/* Catch-All */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* ✅ Global AI Chatbot - Shows only when user is authenticated */}
+      {isAuthenticated && <Chatbot />}
 
       {/* Toast Notifications */}
       <ToastContainer
