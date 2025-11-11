@@ -15,7 +15,7 @@ import AlumniDashboard from './components/Dashboard/AlumniDashboard';
 import AdminDashboard from './components/Dashboard/AdminDashboard';
 import Loader from './components/Common/Loader';
 import MessagingPage from './components/Messaging/MessagingPage.jsx';
-import Chatbot from './components/Common/Chatbot'; // ✅ Add Chatbot
+import Chatbot from './components/Common/Chatbot';
 
 // AI Components
 import MentorSuggestions from './components/AI/MentorSuggestions';
@@ -84,9 +84,9 @@ const AppContent = () => {
           } 
         />
 
-        {/* Protected Routes */}
+        {/* Main Dashboard Route - This handles all dashboard tabs including messages */}
         <Route
-          path="/dashboard"
+          path="/dashboard/*"
           element={
             <PrivateRoute>
               <DashboardRouter />
@@ -94,43 +94,21 @@ const AppContent = () => {
           }
         />
 
-        {/* Messages */}
-        <Route
-          path="/messages"
-          element={
-            <PrivateRoute>
-              <MessagingPage />
-            </PrivateRoute>
-          }
-        />
-
-        {/* Role-based Dashboards */}
+        {/* Legacy routes - redirect to dashboard */}
         <Route
           path="/student/*"
-          element={
-            <PrivateRoute allowedRoles={['student']}>
-              <StudentDashboard />
-            </PrivateRoute>
-          }
+          element={<Navigate to="/dashboard" replace />}
         />
         <Route
           path="/alumni/*"
-          element={
-            <PrivateRoute allowedRoles={['alumni']}>
-              <AlumniDashboard />
-            </PrivateRoute>
-          }
+          element={<Navigate to="/dashboard" replace />}
         />
         <Route
           path="/admin/*"
-          element={
-            <PrivateRoute allowedRoles={['admin']}>
-              <AdminDashboard />
-            </PrivateRoute>
-          }
+          element={<Navigate to="/dashboard" replace />}
         />
 
-        {/* AI Mentorship System Routes */}
+        {/* AI Mentorship System Routes - Keep these separate if needed */}
         <Route
           path="/ai-matching"
           element={

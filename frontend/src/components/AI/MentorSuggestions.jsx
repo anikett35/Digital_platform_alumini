@@ -1,19 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Brain, 
-  Star, 
   Building, 
-  Calendar, 
-  MessageCircle, 
-  User,
-  GraduationCap,
-  TrendingUp,
-  Heart,
   Send,
   Sparkles,
   Target,
   Award,
-  Briefcase  // Add this import
+  Briefcase
 } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
@@ -41,20 +34,6 @@ const MentorSuggestions = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'text-green-600 bg-green-100';
-    if (score >= 60) return 'text-blue-600 bg-blue-100';
-    if (score >= 40) return 'text-orange-600 bg-orange-100';
-    return 'text-gray-600 bg-gray-100';
-  };
-
-  const getScoreLabel = (score) => {
-    if (score >= 80) return 'Excellent Match';
-    if (score >= 60) return 'Good Match';
-    if (score >= 40) return 'Potential Match';
-    return 'Low Match';
   };
 
   if (loading) {

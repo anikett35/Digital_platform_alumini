@@ -1,447 +1,481 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  GraduationCap, 
-  Users, 
-  Briefcase, 
-  Calendar,
-  Heart,
-  TrendingUp,
-  FileText,
-  MessageCircle,
-  Settings,
-  Bell,
-  Search,
-  LogOut,
-  Shield,
-  Menu,
-  X,
-  Home,
-  MessageSquare,
-  ArrowRight
+    GraduationCap, Users, Briefcase, Calendar, TrendingUp, FileText, MessageCircle, Settings, 
+    Bell, Search, LogOut, Menu, X, Home, MessageSquare, AlertCircle, RefreshCw, Shield, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+// Assuming these components exist in the specified paths
 import PostsPage from '../Posts/PostsPage';
 import SetupProfile from '../AI/SetupProfile';
 import MentorshipDashboard from '../AI/MentorshipDashboard';
+import MessagingPage from '../Messaging/MessagingPage';
 
-// Updated Alumni-specific Navbar Component with StudentNavbar styling
-const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [notifications, setNotifications] = useState([]);
+// --- CONFIGURATION ---
+const PRIMARY_TW_COLOR = 'green';
+const ACCENT_TW_COLOR = 'emerald';
+const HEADER_GRADIENT = 'from-green-600 to-emerald-600';
+const NAVBAR_HEIGHT = 80; // Approximate height for sticky calculation
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+// --- Quick Actions List for Scroll Navigation (Must match IDs in AlumniOverviewTab) ---
+const quickActionsMenu = [
+    { id: 'dashboard-stats', name: 'Overview', icon: Home, color: 'green' },
+    { id: 'posts-section', name: 'Share Knowledge', icon: MessageCircle, color: 'blue' },
+    { id: 'mentorship-section', name: 'Mentorship Hub', icon: Users, color: 'purple' },
+    { id: 'messages', name: 'Messages', icon: MessageSquare, color: 'teal' },
+    { id: 'job-board-section', name: 'Job Board', icon: Briefcase, color: 'orange' },
+    { id: 'events-calendar-section', name: 'Events', icon: Calendar, color: 'pink' }
+];
 
-  const alumniTabs = [
-    { id: 'dashboard', name: 'Dashboard', icon: Home },
-    { id: 'posts', name: 'Community Posts', icon: FileText },
-    { id: 'mentorship', name: 'Mentorship', icon: Users },
-    { id: 'messages', name: 'Messages', icon: MessageSquare },
-    { id: 'setup-profile', name: 'Mentor Profile', icon: Settings }
-  ];
+// --- Alumni Navbar Component ---
+const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, onQuickActionClick }) => {
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isScrolled, setIsScrolled] = useState(false);
+    const [notifications] = useState([
+        { id: 1, type: 'mentorship', message: 'New mentorship request from John Doe', read: false },
+        { id: 2, type: 'system', message: 'Profile setup reminder', read: false }
+    ]);
 
-  const unreadNotifications = notifications.filter(n => !n.read).length;
+    // Scroll effect to handle transparency and shadow
+    useEffect(() => {
+        const handleScroll = () => setIsScrolled(window.scrollY > 20);
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
 
-  const handleTabClick = (tabId) => {
-    if (tabId === 'messages') {
-      window.location.href = '/messages';
-      return;
-    }
-    onTabChange(tabId);
-    setIsMobileMenuOpen(false);
-  };
+    // Determine if the Quick Actions bar should be sticky
+    const [isQuickActionsSticky, setIsQuickActionsSticky] = useState(false);
 
-  return (
-    <nav className={`sticky top-0 z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white/80 backdrop-blur-xl shadow-lg' : 'bg-white shadow-md'
-    }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 lg:h-20">
-          {/* Logo */}
-          <div className="flex items-center space-x-3 group cursor-pointer">
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-green-600 to-emerald-600 rounded-xl flex items-center justify-center transform group-hover:scale-105 transition-transform">
-                <GraduationCap className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
-              </div>
-            </div>
-            <div className="hidden sm:block">
-              <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                AlumniConnect
-              </h1>
-              <p className="text-xs text-gray-500">Welcome, {user?.name?.split(' ')[0]}</p>
-            </div>
-          </div>
+    useEffect(() => {
+        const handleScrollForSticky = () => {
+            setIsQuickActionsSticky(window.scrollY > 300 && activeTab === 'dashboard');
+        };
+        
+        window.addEventListener('scroll', handleScrollForSticky);
+        return () => window.removeEventListener('scroll', handleScrollForSticky);
+    }, [activeTab]);
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-1 bg-gray-50 rounded-xl p-1.5">
-            {alumniTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabClick(tab.id)}
-                  className={`relative flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
-                    isActive
-                      ? 'text-green-700 shadow-md'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
-                  }`}
-                >
-                  {isActive && (
-                    <div className="absolute inset-0 bg-white rounded-lg shadow-sm"></div>
-                  )}
-                  <Icon className={`w-4 h-4 relative z-10 ${isActive ? 'text-green-600' : ''}`} />
-                  <span className="relative z-10 text-sm">{tab.name}</span>
-                </button>
-              );
-            })}
-          </div>
+    const alumniTabs = [
+        { id: 'dashboard', name: 'Dashboard', icon: Home },
+        { id: 'posts', name: 'Community Posts', icon: FileText },
+        { id: 'mentorship', name: 'Mentorship', icon: Users },
+        { id: 'messages', name: 'Messages', icon: MessageSquare },
+        { id: 'setup-profile', name: 'Mentor Profile', icon: Settings }
+    ];
 
-          {/* Right Section */}
-          <div className="flex items-center space-x-2 lg:space-x-3">
-            {/* Search */}
-            <div className="hidden md:block relative">
-              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent w-64"
-              />
-            </div>
+    const unreadNotifications = notifications.filter(n => !n.read).length;
 
-            {/* Notifications */}
-            <button className="relative p-2 lg:p-2.5 rounded-xl hover:bg-gray-100 transition-all duration-200 group">
-              <Bell className="w-5 h-5 text-gray-600 group-hover:text-green-600 transition-colors" />
-              {unreadNotifications > 0 && (
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-              )}
-            </button>
+    const handleTabClick = (tabId) => {
+        onTabChange(tabId);
+        setIsMobileMenuOpen(false);
+        // Scroll to top when switching main tabs
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
-            {/* User Menu - Fixed Alignment */}
-            <div className="hidden sm:flex items-center space-x-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl px-3 lg:px-4 py-2 border border-green-100">
-              <div className="w-8 h-8 lg:w-9 lg:h-9 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg flex items-center justify-center shadow-md mr-2">
-                <span className="text-white text-sm font-semibold">
-                  {user?.name?.charAt(0) || 'A'}
-                </span>
-              </div>
-              <div className="hidden md:block text-sm text-left">
-                <p className="font-semibold text-gray-800 leading-tight">{user?.name}</p>
-                <p className="text-xs text-gray-500 capitalize">{user?.role || 'Alumni'}</p>
-              </div>
-            </div>
+    return (
+        <nav className={`sticky top-0 z-50 transition-all duration-300 ${
+            isScrolled ? 'bg-white/80 backdrop-blur-xl shadow-lg' : 'bg-white shadow-md'
+        }`}>
+            <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+                {/* Main Navigation Row */}
+                <div className="flex justify-between items-center h-16 lg:h-20">
+                    {/* Logo */}
+                    <div className="flex items-center space-x-3 group cursor-pointer">
+                        <div className="relative">
+                            <div className={`absolute inset-0 bg-gradient-to-br ${HEADER_GRADIENT} rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity`}></div>
+                            <div className={`relative w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${HEADER_GRADIENT} rounded-xl flex items-center justify-center transform group-hover:scale-105 transition-transform`}>
+                                <GraduationCap className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+                            </div>
+                        </div>
+                        <div className="hidden sm:block">
+                            <h1 className={`text-lg lg:text-xl font-bold bg-gradient-to-r ${HEADER_GRADIENT} bg-clip-text text-transparent`}>
+                                AlumniConnect
+                            </h1>
+                            <p className="text-xs text-gray-500">Welcome, {user?.name?.split(' ')[0]}</p>
+                        </div>
+                    </div>
 
-            {/* Logout */}
-            <button
-              onClick={onLogout}
-              className="hidden sm:block p-2 lg:p-2.5 rounded-xl hover:bg-red-50 text-red-600 transition-all duration-200 hover:scale-105"
-              title="Logout"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
+                    {/* Desktop Navigation */}
+                    <div className="hidden lg:flex items-center space-x-1 bg-gray-50 rounded-xl p-1.5 shadow-inner">
+                        {alumniTabs.map((tab) => {
+                            const Icon = tab.icon;
+                            const isActive = activeTab === tab.id;
+                            
+                            return (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => handleTabClick(tab.id)}
+                                    className={`relative flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm ${
+                                        isActive
+                                            ? `text-${PRIMARY_TW_COLOR}-700 shadow-md bg-white ring-2 ring-${PRIMARY_TW_COLOR}-100`
+                                            : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                                    }`}
+                                >
+                                    <Icon className={`w-4 h-4 ${isActive ? `text-${PRIMARY_TW_COLOR}-600` : ''}`} />
+                                    <span>{tab.name}</span>
+                                </button>
+                            );
+                        })}
+                    </div>
 
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-all duration-200"
-            >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
-        </div>
+                    {/* Right Section */}
+                    <div className="flex items-center space-x-2 lg:space-x-3">
+                        {/* Search */}
+                        <div className="hidden md:block relative">
+                            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                            <input
+                                type="text"
+                                placeholder="Search..."
+                                className={`pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:ring-2 focus:ring-offset-1 focus:ring-${PRIMARY_TW_COLOR}-300 focus:border-transparent w-48 lg:w-64 transition-all duration-200 text-sm`}
+                            />
+                        </div>
 
-        {/* Mobile Navigation */}
-        {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-100 py-4 animate-fadeIn">
-            <div className="space-y-1">
-              {alumniTabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
+                        {/* Notifications */}
+                        <button className={`relative p-2 lg:p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200 group border border-transparent hover:border-gray-200`}>
+                            <Bell className={`w-5 h-5 text-gray-600 group-hover:text-${PRIMARY_TW_COLOR}-600 transition-colors`} />
+                            {unreadNotifications > 0 && (
+                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                            )}
+                        </button>
+
+                        {/* User Avatar */}
+                        <div className="group relative">
+                            <div className={`w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-${PRIMARY_TW_COLOR}-600 to-${ACCENT_TW_COLOR}-500 rounded-full flex items-center justify-center shadow-md cursor-pointer`}>
+                                <span className="text-white text-base font-semibold">
+                                    {user?.name?.charAt(0) || 'A'}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Logout */}
+                        <button
+                            onClick={onLogout}
+                            className="hidden sm:block p-2 lg:p-2.5 rounded-full hover:bg-red-50 text-red-600 transition-all duration-200 hover:shadow-md"
+                            title="Logout"
+                        >
+                            <LogOut className="w-5 h-5" />
+                        </button>
+
+                        {/* Mobile menu button */}
+                        <button
+                            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                            className="lg:hidden p-2 rounded-full hover:bg-gray-100 transition-all duration-200"
+                        >
+                            {isMobileMenuOpen ? <X className="w-5 h-5 text-gray-700" /> : <Menu className="w-5 h-5 text-gray-700" />}
+                        </button>
+                    </div>
+                </div>
+
+                {/* 💡 SCROLL-TRIGGERED QUICK ACTIONS TAB BAR (Desktop Only) */}
+                {activeTab === 'dashboard' && (
+                    <div className={`hidden lg:block border-t border-gray-100 transition-all duration-300 ${
+                        isQuickActionsSticky ? 'py-2 opacity-100 h-auto' : 'py-0 h-0 opacity-0 overflow-hidden'
+                    }`}>
+                        <div className="flex space-x-4 overflow-x-auto pb-1">
+                            {quickActionsMenu.map((item) => {
+                                const Icon = item.icon;
+                                const isActive = activeSection === item.id;
+                                return (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => onQuickActionClick(item.id)}
+                                        className={`flex items-center space-x-2 px-3 py-1.5 rounded-full font-medium text-sm transition-all duration-200 min-w-max ${
+                                            isActive
+                                                ? `bg-${PRIMARY_TW_COLOR}-50 text-${PRIMARY_TW_COLOR}-700 ring-2 ring-${PRIMARY_TW_COLOR}-200 shadow-sm`
+                                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                                        }`}
+                                    >
+                                        <Icon className="w-4 h-4" />
+                                        <span>{item.name}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
                 
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabClick(tab.id)}
-                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                      isActive
-                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 border border-green-200 shadow-sm'
-                        : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <Icon className="w-5 h-5" />
-                    <span>{tab.name}</span>
-                    {isActive && <ArrowRight className="w-4 h-4 ml-auto" />}
-                  </button>
-                );
-              })}
-              <button
-                onClick={onLogout}
-                className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-all duration-200 mt-4 border-t border-gray-100 pt-4"
-              >
-                <LogOut className="w-5 h-5" />
-                <span>Logout</span>
-              </button>
+                {/* Mobile Navigation */}
+                {isMobileMenuOpen && (
+                    <div className="lg:hidden border-t border-gray-100 py-4">
+                        <div className="space-y-1">
+                            {alumniTabs.map((tab) => {
+                                const Icon = tab.icon;
+                                const isActive = activeTab === tab.id;
+                                
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        onClick={() => handleTabClick(tab.id)}
+                                        className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
+                                            isActive
+                                                ? `bg-gradient-to-r from-${PRIMARY_TW_COLOR}-50 to-${ACCENT_TW_COLOR}-50 text-${PRIMARY_TW_COLOR}-700 border border-${PRIMARY_TW_COLOR}-200 shadow-sm`
+                                                : 'text-gray-600 hover:bg-gray-50'
+                                        }`}
+                                    >
+                                        <Icon className="w-5 h-5" />
+                                        <span>{tab.name}</span>
+                                        {isActive && <ArrowRight className="w-4 h-4 ml-auto" />}
+                                    </button>
+                                );
+                            })}
+                            <button
+                                onClick={onLogout}
+                                className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-all duration-200 mt-4 border-t border-gray-100 pt-4"
+                            >
+                                <LogOut className="w-5 h-5" />
+                                <span>Logout</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
-          </div>
-        )}
-      </div>
-    </nav>
-  );
+        </nav>
+    );
 };
 
-const AlumniDashboard = () => {
-  const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState('dashboard');
-  const [loading, setLoading] = useState(false);
-  const [debugInfo, setDebugInfo] = useState(null);
-  const [notifications, setNotifications] = useState([]);
-
-  // Debug logging
-  useEffect(() => {
-    console.log('🔧 AlumniDashboard Debug Info:', {
-      user: user ? `${user.name} (${user.role})` : 'No user',
-      activeTab,
-      timestamp: new Date().toISOString()
-    });
-
-    // Set debug info for development
-    if (process.env.NODE_ENV === 'development') {
-      setDebugInfo({
-        userRole: user?.role,
-        userId: user?._id,
-        component: 'AlumniDashboard',
-        lastRender: new Date().toLocaleTimeString()
-      });
-    }
-  }, [user, activeTab]);
-
-  // Mock notifications (replace with actual API call)
-  useEffect(() => {
-    const mockNotifications = [
-      { id: 1, type: 'mentorship', message: 'New mentorship request from John Doe', read: false },
-      { id: 2, type: 'post', message: 'Your post got 5 new likes', read: true },
-      { id: 3, type: 'system', message: 'Profile setup reminder', read: false }
-    ];
-    setNotifications(mockNotifications);
-  }, []);
-
-  const tabs = [
-    { id: 'dashboard', name: 'Dashboard', icon: GraduationCap, description: 'Overview and analytics' },
-    { id: 'posts', name: 'Community Posts', icon: FileText, description: 'Share and engage with community' },
-    { id: 'mentorship', name: 'Mentorship', icon: Users, description: 'Manage mentorship requests' },
-    { id: 'messages', name: 'Messages', icon: MessageSquare, description: 'Chat with connections' },
-    { id: 'setup-profile', name: 'Mentor Profile', icon: Settings, description: 'Setup AI matching profile' }
-  ];
-
-  const handleTabChange = (tabId) => {
-    setLoading(true);
-    console.log(`🔄 Switching to tab: ${tabId}`);
-    
-    // Simulate loading for better UX
-    setTimeout(() => {
-      setActiveTab(tabId);
-      setLoading(false);
-    }, 300);
-  };
-
-  const unreadNotifications = notifications.filter(n => !n.read).length;
-
-  const renderContent = () => {
-    if (loading) {
-      return (
-        <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 flex items-center justify-center">
-          <div className="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading...</p>
-          </div>
+// --- Reusable Tab Content Wrapper ---
+const TabContentWrapper = ({ title, children, icon: Icon }) => (
+    <div className="min-h-[70vh] bg-white rounded-2xl shadow-xl p-6 lg:p-8 border border-gray-100">
+        <div className="flex items-center space-x-3 mb-6 border-b pb-4 border-gray-100">
+            {Icon && <Icon className={`w-7 h-7 text-${PRIMARY_TW_COLOR}-600`} />}
+            <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
         </div>
-      );
-    }
+        <div className="space-y-6">
+            {children}
+        </div>
+    </div>
+);
 
-    switch (activeTab) {
-      case 'posts':
-        return <PostsPage />;
-      case 'mentorship':
-        return <MentorshipDashboard />;
-      case 'messages':
-        // Navigate to messages page - this will use the route from App.js
-        window.location.href = '/messages';
-        return <div>Redirecting to messages...</div>;
-      case 'setup-profile':
-        return <SetupProfile />;
-      default:
-        return (
-          <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-            <div className="container mx-auto px-4 py-8">
-              <div className="bg-white rounded-2xl shadow-xl p-8">
-                {/* Navigation Tabs */}
-                <div className="flex space-x-2 mb-8 overflow-x-auto pb-2">
-                  {tabs.map((tab) => (
-                    <button
-                      key={tab.id}
-                      onClick={() => handleTabChange(tab.id)}
-                      className={`px-6 py-3 rounded-xl font-medium transition-all flex items-center space-x-3 min-w-max ${
-                        activeTab === tab.id
-                          ? 'bg-green-500 text-white shadow-lg transform scale-105'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-md'
-                      }`}
-                    >
-                      <tab.icon className="w-5 h-5" />
-                      <div className="text-left">
-                        <div className="font-semibold">{tab.name}</div>
-                        <div className={`text-xs ${
-                          activeTab === tab.id ? 'text-green-100' : 'text-gray-500'
-                        }`}>
-                          {tab.description}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+// --- Alumni Overview Tab Component (SPA anchors) ---
+const AlumniOverviewTab = ({ onTabChange, debugInfo, onSectionChange }) => {
+    // Mock Data
+    const stats = [
+        { title: 'Profile Completion', value: '85%', detail: 'Almost there!', icon: Shield, color: 'from-green-400 to-green-600' },
+        { title: 'Mentorship', value: '3', detail: 'Active mentees', icon: Users, color: 'from-blue-400 to-blue-600' },
+        { title: 'Posts', value: '12', detail: 'This month', icon: FileText, color: 'from-purple-400 to-purple-600' },
+        { title: 'Connections', value: '47', detail: 'Alumni network', icon: TrendingUp, color: 'from-orange-400 to-orange-600' }
+    ];
 
-                {/* Dashboard Stats */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                  <div className="bg-gradient-to-r from-green-400 to-green-600 rounded-xl p-6 text-white">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">Profile Completion</h3>
-                        <p className="text-2xl font-bold">85%</p>
-                        <p className="text-green-100 text-sm">Almost there!</p>
-                      </div>
-                      <Shield className="w-8 h-8 opacity-80" />
-                    </div>
-                  </div>
-                  
-                  <div className="bg-gradient-to-r from-blue-400 to-blue-600 rounded-xl p-6 text-white">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">Mentorship</h3>
-                        <p className="text-2xl font-bold">3</p>
-                        <p className="text-blue-100 text-sm">Active mentees</p>
-                      </div>
-                      <Users className="w-8 h-8 opacity-80" />
-                    </div>
-                  </div>
+    const quickActions = [
+        { id: 'posts-section', title: 'Share Knowledge', description: 'Create posts and share experiences', icon: MessageCircle, color: 'from-blue-400 to-blue-600', action: () => onTabChange('posts') },
+        { id: 'mentorship-section', title: 'Mentorship Hub', description: 'Manage student connections', icon: Users, color: 'from-purple-400 to-purple-600', action: () => onTabChange('mentorship') },
+        { id: 'messages', title: 'Messages', description: 'Chat with your connections', icon: MessageSquare, color: 'from-teal-400 to-teal-600', action: () => onTabChange('messages') },
+        { id: 'setup-profile', title: 'AI Profile Setup', description: 'Optimize your matching profile', icon: Settings, color: 'from-teal-400 to-teal-600', action: () => onTabChange('setup-profile') },
+        { id: 'job-board-section', title: 'Job Board', description: 'Post opportunities for students', icon: Briefcase, color: 'from-orange-400 to-orange-600', action: () => console.log('Navigate to Job Board') },
+        { id: 'events-calendar-section', title: 'Events Calendar', description: 'Organize alumni meetups', icon: Calendar, color: 'from-pink-400 to-pink-600', action: () => console.log('Navigate to Events') }
+    ];
 
-                  <div className="bg-gradient-to-r from-purple-400 to-purple-600 rounded-xl p-6 text-white">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">Posts</h3>
-                        <p className="text-2xl font-bold">12</p>
-                        <p className="text-purple-100 text-sm">This month</p>
-                      </div>
-                      <FileText className="w-8 h-8 opacity-80" />
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl p-6 text-white">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">Connections</h3>
-                        <p className="text-2xl font-bold">47</p>
-                        <p className="text-orange-100 text-sm">Alumni network</p>
-                      </div>
-                      <TrendingUp className="w-8 h-8 opacity-80" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Actions Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[
-                    { 
-                      title: 'Share Knowledge', 
-                      description: 'Create posts and share experiences',
-                      icon: MessageCircle, 
-                      color: 'from-blue-400 to-blue-600',
-                      action: () => handleTabChange('posts')
-                    },
-                    { 
-                      title: 'Mentorship Hub', 
-                      description: 'Manage student connections',
-                      icon: Users, 
-                      color: 'from-purple-400 to-purple-600',
-                      action: () => handleTabChange('mentorship')
-                    },
-                    { 
-                      title: 'Messages', 
-                      description: 'Chat with your connections',
-                      icon: MessageSquare, 
-                      color: 'from-teal-400 to-teal-600',
-                      action: () => handleTabChange('messages')
-                    },
-                    { 
-                      title: 'AI Profile Setup', 
-                      description: 'Optimize your matching profile',
-                      icon: Settings, 
-                      color: 'from-teal-400 to-teal-600',
-                      action: () => handleTabChange('setup-profile')
-                    },
-                    { 
-                      title: 'Job Board', 
-                      description: 'Post opportunities for students',
-                      icon: Briefcase, 
-                      color: 'from-orange-400 to-orange-600',
-                      action: () => console.log('Navigate to Job Board')
-                    },
-                    { 
-                      title: 'Events Calendar', 
-                      description: 'Organize alumni meetups',
-                      icon: Calendar, 
-                      color: 'from-pink-400 to-pink-600',
-                      action: () => console.log('Navigate to Events')
+    // Scroll Observation Hook (using useCallback for optimization)
+    const observeScroll = useCallback(() => {
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    // Only update the section if it is currently intersecting
+                    if (entry.isIntersecting) {
+                        onSectionChange(entry.target.id);
                     }
-                  ].map((item, index) => (
-                    <div
-                      key={index}
-                      onClick={item.action}
-                      className={`bg-gradient-to-r ${item.color} rounded-xl p-6 text-white cursor-pointer transform hover:scale-105 transition-all duration-300 hover:shadow-xl`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex-1">
-                          <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
-                          <p className="opacity-90 text-sm">{item.description}</p>
-                        </div>
-                        <item.icon className="w-8 h-8 opacity-80 flex-shrink-0 ml-4" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                });
+            },
+            // The rootMargin determines the "active area" in the viewport.
+            // '-100px 0px -50% 0px' means the top 100px and the bottom 50% are excluded.
+            // This centers the trigger point below the sticky navbar.
+            {
+                rootMargin: `-${NAVBAR_HEIGHT + 20}px 0px -50% 0px`, 
+                threshold: 0 // Observe as soon as it crosses the threshold
+            }
+        );
 
-                {/* Debug Information (Development only) */}
-                {process.env.NODE_ENV === 'development' && debugInfo && (
-                  <div className="mt-8 p-4 bg-gray-100 rounded-lg border">
-                    <h4 className="font-semibold text-gray-800 mb-2">Debug Information</h4>
-                    <pre className="text-xs text-gray-600">
-                      {JSON.stringify(debugInfo, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </div>
+        const idsToObserve = ['dashboard-stats', ...quickActions.map(a => a.id)];
+        
+        idsToObserve.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) observer.observe(el);
+        });
+
+        return () => {
+             idsToObserve.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) observer.unobserve(el);
+            });
+        };
+    }, [onSectionChange]);
+
+    useEffect(() => {
+        const cleanup = observeScroll();
+        return cleanup;
+    }, [observeScroll]);
+
+
+    return (
+        <TabContentWrapper title="Alumni Dashboard Overview" icon={Home}>
+            {/* Dashboard Stats - Anchor ID for scroll tracking */}
+            <div id="dashboard-stats" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-2"> 
+                {stats.map((stat, index) => {
+                    const Icon = stat.icon;
+                    return (
+                        <div key={index} className={`${stat.color} rounded-xl p-6 text-white shadow-lg transform hover:scale-[1.02] transition-transform duration-200`}>
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h3 className="text-lg font-semibold mb-2">{stat.title}</h3>
+                                    <p className="text-3xl font-bold">{stat.value}</p>
+                                    <p className="text-white/80 text-sm">{stat.detail}</p>
+                                </div>
+                                <Icon className="w-9 h-9 opacity-80" />
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
-          </div>
+
+            {/* Quick Actions Grid */}
+            <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4 border-b pb-2 border-gray-100">Quick Actions</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {quickActions.map((item, index) => {
+                    const Icon = item.icon;
+                    return (
+                        <div
+                            key={index}
+                            id={item.id} // ANCHOR ID ADDED HERE
+                            onClick={item.action}
+                            className={`bg-gradient-to-r ${item.color} rounded-xl p-6 text-white cursor-pointer transform hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:ring-2 ring-white/50`}
+                        >
+                            <div className="flex items-start justify-between">
+                                <div className="flex-1 pr-4">
+                                    <h3 className="text-xl font-semibold mb-1">{item.title}</h3>
+                                    <p className="opacity-90 text-sm">{item.description}</p>
+                                </div>
+                                <Icon className="w-7 h-7 opacity-80 flex-shrink-0 mt-1" />
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            
+            {/* Debug Information */}
+            {process.env.NODE_ENV === 'development' && debugInfo && (
+                <div className="mt-8 p-4 bg-gray-100 rounded-lg border border-gray-200">
+                    <h4 className="font-semibold text-gray-800 mb-2">Debug Information</h4>
+                    <pre className="text-xs text-gray-600 overflow-auto max-h-48">
+                        {JSON.stringify(debugInfo, null, 2)}
+                    </pre>
+                </div>
+            )}
+        </TabContentWrapper>
+    );
+};
+
+// --- AlumniDashboard Main Component ---
+const AlumniDashboard = () => {
+    const { user, logout } = useAuth();
+    const [activeTab, setActiveTab] = useState('dashboard');
+    const [loading, setLoading] = useState(false);
+    const [debugInfo, setDebugInfo] = useState(null);
+    // State to track the currently visible section for the sticky menu
+    const [activeSection, setActiveSection] = useState('dashboard-stats'); 
+
+    // Debug logging
+    useEffect(() => {
+        if (process.env.NODE_ENV === 'development') {
+            setDebugInfo({
+                userRole: user?.role,
+                userId: user?._id,
+                activeTab,
+                activeSection, // Include the currently visible section
+                component: 'AlumniDashboard',
+                lastRender: new Date().toLocaleTimeString()
+            });
+        }
+    }, [user, activeTab, activeSection]);
+
+    const handleTabChange = (tabId) => {
+        setLoading(true);
+        setTimeout(() => {
+            setActiveTab(tabId);
+            setLoading(false);
+            setActiveSection('dashboard-stats'); // Reset active section on tab change
+        }, 300);
+    };
+
+    // Handler for smooth scrolling to quick action anchors
+    const handleQuickActionClick = (sectionId) => {
+        if (sectionId === 'messages') {
+            handleTabChange('messages');
+            return;
+        }
+        
+        const element = document.getElementById(sectionId);
+        if (element) {
+            // Adjust scroll position using the predefined NAVBAR_HEIGHT
+            const topPosition = element.offsetTop - NAVBAR_HEIGHT - 10; 
+            window.scrollTo({ top: topPosition, behavior: 'smooth' });
+        }
+        setActiveSection(sectionId);
+    };
+
+    const renderContent = () => {
+        if (loading) {
+            return (
+                <div className="min-h-[70vh] flex items-center justify-center bg-white rounded-2xl shadow-xl">
+                    <div className="text-center">
+                        <RefreshCw className="w-12 h-12 text-green-500 mx-auto mb-4 animate-spin" />
+                        <p className="text-gray-600 font-medium">Loading {activeTab}...</p>
+                    </div>
+                </div>
+            );
+        }
+
+        switch (activeTab) {
+            case 'posts':
+                return <TabContentWrapper title="Community Posts" icon={FileText}><PostsPage /></TabContentWrapper>;
+            case 'mentorship':
+                return <TabContentWrapper title="Mentorship Hub" icon={Users}><MentorshipDashboard /></TabContentWrapper>;
+            case 'messages':
+                return (
+                    <TabContentWrapper title="Messages" icon={MessageSquare}>
+                        <MessagingPage embedded={true} />
+                    </TabContentWrapper>
+                );
+            case 'setup-profile':
+                return <TabContentWrapper title="Mentor Profile Setup" icon={Settings}><SetupProfile /></TabContentWrapper>;
+            case 'dashboard':
+            default:
+                return (
+                    <AlumniOverviewTab 
+                        onTabChange={handleTabChange} 
+                        debugInfo={debugInfo} 
+                        onSectionChange={setActiveSection} // Pass the handler for scroll tracking
+                    />
+                );
+        }
+    };
+
+    if (!user) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
+                    <p className="text-gray-600">Please log in to access the Alumni dashboard</p>
+                </div>
+            </div>
         );
     }
-  };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-emerald-50/30">
-      {/* Updated Alumni-specific Navbar */}
-      <AlumniNavbar 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
-        onLogout={logout}
-        user={user}
-      />
+    return (
+        <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-${PRIMARY_TW_COLOR}-50/30 to-${ACCENT_TW_COLOR}-50/30`}>
+            <AlumniNavbar 
+                activeTab={activeTab} 
+                onTabChange={handleTabChange} 
+                onLogout={logout}
+                user={user}
+                activeSection={activeSection} // Pass active section to Navbar for highlighting
+                onQuickActionClick={handleQuickActionClick} // Pass click handler for scrolling
+            />
 
-      {renderContent()}
-    </div>
-  );
+            <main className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+                {renderContent()}
+            </main>
+        </div>
+    );
 };
 
 export default AlumniDashboard;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Users, Clock, CheckCircle, XCircle, AlertCircle, MessageCircle } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../../context/AuthContext';
-
+import { useNavigate } from 'react-router-dom';
 
 const MentorshipDashboard = () => {
   const [matches, setMatches] = useState({
@@ -14,9 +14,17 @@ const MentorshipDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchMatches();
+    
+    // Set up polling for real-time updates (every 10 seconds)
+    const interval = setInterval(() => {
+      fetchMatches();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const fetchMatches = async () => {
@@ -38,11 +46,20 @@ const MentorshipDashboard = () => {
         responseMessage
       });
       alert(`Request ${status}!`);
-      fetchMatches();
+      fetchMatches(); // Refresh the data immediately
     } catch (error) {
       console.error('Error responding:', error);
       alert('Failed to respond to request');
     }
+  };
+
+  const handleMessageUser = (otherUser) => {
+    // Navigate to messages with the specific user
+    navigate('/dashboard/messages', { 
+      state: { 
+        startConversationWith: otherUser 
+      } 
+    });
   };
 
   if (loading) {
@@ -110,9 +127,28 @@ const MentorshipDashboard = () => {
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Active Mentorships</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {matches.accepted.map((match) => (
-              <ActiveMentorshipCard key={match._id} match={match} userRole={user?.role} />
+              <ActiveMentorshipCard 
+                key={match._id} 
+                match={match} 
+                userRole={user?.role}
+                onMessage={handleMessageUser}
+              />
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Show empty state if no connections */}
+      {matches.pending.length === 0 && matches.accepted.length === 0 && (
+        <div className="text-center py-12 bg-white rounded-lg shadow">
+          <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Mentorship Connections</h3>
+          <p className="text-gray-600">
+            {user?.role === 'student' 
+              ? 'Find mentors using the AI Matching feature to get started!' 
+              : 'Students will appear here when they send you mentorship requests.'
+            }
+          </p>
         </div>
       )}
     </div>
@@ -223,12 +259,27 @@ const RequestCard = ({ match, userRole, onRespond }) => {
           </div>
         </div>
       )}
+
+      {userRole === 'student' && (
+        <div className="text-center pt-4 border-t border-gray-200">
+          <p className="text-sm text-gray-600">
+            <Clock className="w-4 h-4 inline mr-1" />
+            Waiting for mentor response...
+          </p>
+        </div>
+      )}
     </div>
   );
 };
 
-const ActiveMentorshipCard = ({ match, userRole }) => {
+const ActiveMentorshipCard = ({ match, userRole, onMessage }) => {
   const otherUser = userRole === 'alumni' ? match.student : match.mentor;
+
+  const handleMessageClick = () => {
+    if (onMessage && otherUser) {
+      onMessage(otherUser);
+    }
+  };
 
   return (
     <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
@@ -239,6 +290,9 @@ const ActiveMentorshipCard = ({ match, userRole }) => {
         <div className="flex-1">
           <h3 className="text-lg font-bold text-gray-900">{otherUser?.name}</h3>
           <p className="text-sm text-gray-600">{match.mentorshipTopic}</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {userRole === 'alumni' ? 'Mentee' : 'Mentor'} • Match Score: {match.matchScore}%
+          </p>
         </div>
         <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
           Active
@@ -252,8 +306,12 @@ const ActiveMentorshipCard = ({ match, userRole }) => {
         </div>
       )}
 
-      <button className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600">
-        Message {userRole === 'alumni' ? 'Mentee' : 'Mentor'}
+      <button 
+        onClick={handleMessageClick}
+        className="w-full bg-blue-500 text-white py-2 rounded-lg font-semibold hover:bg-blue-600 flex items-center justify-center space-x-2"
+      >
+        <MessageCircle className="w-4 h-4" />
+        <span>Message {userRole === 'alumni' ? 'Mentee' : 'Mentor'}</span>
       </button>
     </div>
   );

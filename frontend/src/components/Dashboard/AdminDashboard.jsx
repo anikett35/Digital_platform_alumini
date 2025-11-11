@@ -9,21 +9,27 @@ import {
   LogOut,
   Menu,
   X,
-  Home,
   Shield,
   MessageSquare,
   TrendingUp,
-  Sparkles,
   ArrowRight,
   Plus,
   Edit,
   Trash2,
-  Download
+  Download,
+  MapPin,
+  Clock
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Chatbot from '../Common/Chatbot';
+import MessagingPage from '../Messaging/MessagingPage';
 
-// Admin-specific Navbar Component
+// --- CONFIGURATION ---
+const PRIMARY_TW_COLOR = 'purple';
+const ACCENT_TW_COLOR = 'indigo';
+const HEADER_GRADIENT = 'from-purple-600 to-indigo-600';
+
+// Admin-specific Navbar Component - Matching Alumni Dashboard Style
 const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -43,38 +49,35 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   ];
 
   const handleTabClick = (tabId) => {
-    if (tabId === 'messages') {
-      window.location.href = '/messages';
-      return;
-    }
     onTabChange(tabId);
     setIsMobileMenuOpen(false);
   };
 
   return (
     <nav className={`sticky top-0 z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white/80 backdrop-blur-xl shadow-lg' : 'bg-white shadow-md'
+      isScrolled ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-200' : 'bg-white shadow-md'
     }`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Navigation Row - Full Height */}
         <div className="flex justify-between items-center h-16 lg:h-20">
-          {/* Logo */}
+          {/* Logo Section */}
           <div className="flex items-center space-x-3 group cursor-pointer">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center transform group-hover:scale-105 transition-transform">
+              <div className={`absolute inset-0 bg-gradient-to-br ${HEADER_GRADIENT} rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity`}></div>
+              <div className={`relative w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${HEADER_GRADIENT} rounded-xl flex items-center justify-center transform group-hover:scale-105 transition-transform`}>
                 <Shield className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               </div>
             </div>
             <div className="hidden sm:block">
-              <h1 className="text-lg lg:text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className={`text-lg lg:text-xl font-bold bg-gradient-to-r ${HEADER_GRADIENT} bg-clip-text text-transparent`}>
                 AdminPortal
               </h1>
               <p className="text-xs text-gray-500">Welcome, {user?.name?.split(' ')[0]}</p>
             </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-1 bg-gray-50 rounded-xl p-1.5">
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden lg:flex items-center space-x-1 bg-gray-50 rounded-xl p-1.5 shadow-inner border border-gray-200">
             {adminTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -83,57 +86,56 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
                 <button
                   key={tab.id}
                   onClick={() => handleTabClick(tab.id)}
-                  className={`relative flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${
+                  className={`relative flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm ${
                     isActive
-                      ? 'text-purple-700 shadow-md'
+                      ? `text-${PRIMARY_TW_COLOR}-700 shadow-md bg-white ring-2 ring-${PRIMARY_TW_COLOR}-100`
                       : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
                   }`}
                 >
-                  {isActive && (
-                    <div className="absolute inset-0 bg-white rounded-lg shadow-sm"></div>
-                  )}
-                  <Icon className={`w-4 h-4 relative z-10 ${isActive ? 'text-purple-600' : ''}`} />
-                  <span className="relative z-10 text-sm">{tab.name}</span>
+                  <Icon className={`w-4 h-4 ${isActive ? `text-${PRIMARY_TW_COLOR}-600` : ''}`} />
+                  <span>{tab.name}</span>
                 </button>
               );
             })}
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center space-x-2 lg:space-x-3">
-            {/* Search */}
+          <div className="flex items-center space-x-3 lg:space-x-4">
+            {/* Search Bar */}
             <div className="hidden md:block relative">
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
                 type="text"
-                placeholder="Search..."
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent w-64"
+                placeholder="Search events, users..."
+                className={`pl-10 pr-4 py-2.5 border border-gray-200 rounded-full focus:ring-2 focus:ring-offset-1 focus:ring-${PRIMARY_TW_COLOR}-300 focus:border-transparent w-48 lg:w-64 transition-all duration-200 text-sm bg-white`}
               />
             </div>
 
             {/* Notifications */}
-            <button className="relative p-2 lg:p-2.5 rounded-xl hover:bg-gray-100 transition-all duration-200 group">
-              <Bell className="w-5 h-5 text-gray-600 group-hover:text-purple-600 transition-colors" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+            <button className={`relative p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200 group border border-transparent hover:border-gray-200`}>
+              <Bell className={`w-5 h-5 text-gray-600 group-hover:text-${PRIMARY_TW_COLOR}-600 transition-colors`} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
             </button>
 
             {/* User Menu */}
-            <div className="hidden sm:flex items-center space-x-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl px-3 lg:px-4 py-2 border border-purple-100">
-              <div className="w-8 h-8 lg:w-9 lg:h-9 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg flex items-center justify-center shadow-md">
-                <span className="text-white text-sm font-semibold">
-                  {user?.name?.charAt(0) || 'A'}
-                </span>
-              </div>
-              <div className="hidden md:block text-sm">
-                <p className="font-semibold text-gray-800 leading-tight">{user?.name}</p>
-                <p className="text-xs text-gray-500">Administrator</p>
+            <div className="flex items-center space-x-3">
+              <div className="hidden md:flex items-center space-x-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl px-4 py-2 border border-purple-100">
+                <div className={`w-8 h-8 lg:w-9 lg:h-9 bg-gradient-to-br from-${PRIMARY_TW_COLOR}-600 to-${ACCENT_TW_COLOR}-500 rounded-full flex items-center justify-center shadow-md`}>
+                  <span className="text-white text-sm font-semibold">
+                    {user?.name?.charAt(0) || 'A'}
+                  </span>
+                </div>
+                <div className="hidden lg:block text-sm">
+                  <p className="font-semibold text-gray-800 leading-tight">{user?.name}</p>
+                  <p className="text-xs text-gray-500">Administrator</p>
+                </div>
               </div>
             </div>
 
             {/* Logout */}
             <button
               onClick={onLogout}
-              className="hidden sm:block p-2 lg:p-2.5 rounded-xl hover:bg-red-50 text-red-600 transition-all duration-200 hover:scale-105"
+              className="hidden sm:block p-2.5 rounded-full hover:bg-red-50 text-red-600 transition-all duration-200 hover:shadow-md border border-transparent hover:border-red-200"
               title="Logout"
             >
               <LogOut className="w-5 h-5" />
@@ -142,17 +144,17 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
             {/* Mobile menu button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-xl hover:bg-gray-100 transition-all duration-200"
+              className="lg:hidden p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200 border border-transparent hover:border-gray-200"
             >
-              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {isMobileMenuOpen ? <X className="w-5 h-5 text-gray-700" /> : <Menu className="w-5 h-5 text-gray-700" />}
             </button>
           </div>
         </div>
 
         {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-100 py-4 animate-fadeIn">
-            <div className="space-y-1">
+          <div className="lg:hidden border-t border-gray-200 py-4 bg-white/95 backdrop-blur-sm">
+            <div className="space-y-2">
               {adminTabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -163,22 +165,36 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
                     onClick={() => handleTabClick(tab.id)}
                     className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                       isActive
-                        ? 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 border border-purple-200 shadow-sm'
+                        ? `bg-gradient-to-r from-${PRIMARY_TW_COLOR}-50 to-${ACCENT_TW_COLOR}-50 text-${PRIMARY_TW_COLOR}-700 border border-${PRIMARY_TW_COLOR}-200 shadow-sm`
                         : 'text-gray-600 hover:bg-gray-50'
                     }`}
                   >
                     <Icon className="w-5 h-5" />
-                    <span>{tab.name}</span>
-                    {isActive && <ArrowRight className="w-4 h-4 ml-auto" />}
+                    <span className="font-medium">{tab.name}</span>
+                    {isActive && <ArrowRight className="w-4 h-4 ml-auto text-purple-600" />}
                   </button>
                 );
               })}
+              
+              {/* Mobile Search */}
+              <div className="px-4 py-3 border-t border-gray-200">
+                <div className="relative">
+                  <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search..."
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* Mobile Logout */}
               <button
                 onClick={onLogout}
-                className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-all duration-200 mt-4 border-t border-gray-100 pt-4"
+                className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-all duration-200 border-t border-gray-200 mt-2 pt-4"
               >
                 <LogOut className="w-5 h-5" />
-                <span>Logout</span>
+                <span className="font-medium">Logout</span>
               </button>
             </div>
           </div>
@@ -187,6 +203,19 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
     </nav>
   );
 };
+
+// --- Reusable Tab Content Wrapper ---
+const TabContentWrapper = ({ title, children, icon: Icon }) => (
+  <div className="min-h-[70vh] bg-white rounded-2xl shadow-xl p-6 lg:p-8 border border-gray-100">
+    <div className="flex items-center space-x-3 mb-6 border-b pb-4 border-gray-100">
+      {Icon && <Icon className={`w-7 h-7 text-${PRIMARY_TW_COLOR}-600`} />}
+      <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+    </div>
+    <div className="space-y-6">
+      {children}
+    </div>
+  </div>
+);
 
 const AdminDashboard = () => {
   const [events, setEvents] = useState([]);
@@ -214,14 +243,14 @@ const AdminDashboard = () => {
   // Event types for dropdown
   const eventTypes = ['Workshop', 'Networking', 'Seminar', 'Conference', 'Webinar', 'Social', 'Career Fair'];
   
-  // Initialize with sample data
+  // Initialize with sample data matching the first image
   useEffect(() => {
     const sampleEvents = [
       {
         id: 1,
         title: "Career Guidance Workshop",
         date: "2024-12-15",
-        time: "14:00",
+        time: "16:00",
         type: "Workshop",
         maxAttendees: 100,
         currentAttendees: 45,
@@ -254,7 +283,7 @@ const AdminDashboard = () => {
         time: "11:00",
         type: "Seminar",
         maxAttendees: 300,
-        currentAttendees: 200,
+        currentAttendees: 300,
         description: "Insights from industry leaders about current trends and future opportunities.",
         location: "Tech Hall",
         duration: "1.5 hours",
@@ -346,51 +375,47 @@ const AdminDashboard = () => {
     return matchesType && matchesStatus && matchesSearch;
   });
 
-  // Calculate event statistics
+  // Calculate event statistics matching the first image
   const eventStats = [
     {
       id: 'total',
       name: 'Total Events',
-      value: events.length.toString(),
+      value: '3',
       change: '+3 this week',
       trend: 'up',
       icon: Calendar,
-      gradient: 'from-purple-500 to-purple-600',
-      bgGradient: 'from-purple-50 to-purple-100'
+      gradient: 'from-purple-400 to-purple-600'
     },
     {
       id: 'upcoming',
       name: 'Upcoming Events',
-      value: events.filter(event => event.status === 'upcoming').length.toString(),
+      value: '3',
       change: '2 scheduled',
       trend: 'up',
       icon: TrendingUp,
-      gradient: 'from-blue-500 to-blue-600',
-      bgGradient: 'from-blue-50 to-blue-100'
+      gradient: 'from-blue-400 to-blue-600'
     },
     {
       id: 'attendees',
       name: 'Total Attendees',
-      value: events.reduce((sum, event) => sum + event.currentAttendees, 0).toString(),
+      value: '365',
       change: '+45 today',
       trend: 'up',
       icon: Users,
-      gradient: 'from-green-500 to-emerald-600',
-      bgGradient: 'from-green-50 to-emerald-100'
+      gradient: 'from-green-400 to-green-600'
     },
     {
       id: 'capacity',
       name: 'Avg. Capacity',
-      value: `${Math.round(events.reduce((sum, event) => sum + (event.currentAttendees / event.maxAttendees * 100), 0) / events.length || 0)}%`,
+      value: '57%',
       change: '+12% growth',
       trend: 'up',
       icon: BarChart3,
-      gradient: 'from-orange-500 to-red-500',
-      bgGradient: 'from-orange-50 to-red-100'
+      gradient: 'from-orange-400 to-orange-600'
     }
   ];
 
-  // Format date for display
+  // Format date for display matching the first image format
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       weekday: 'long',
@@ -404,58 +429,28 @@ const AdminDashboard = () => {
     switch (activeTab) {
       case 'events':
         return (
-          <div className="space-y-6 lg:space-y-8">
-            {/* Welcome Header */}
-            <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-500 rounded-2xl lg:rounded-3xl shadow-2xl p-6 lg:p-8">
-              <div className="absolute inset-0 bg-black/10"></div>
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full -ml-32 -mb-32 blur-3xl"></div>
-              <div className="relative z-10">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
-                  <span className="text-white/90 text-sm font-medium">Admin Dashboard</span>
-                </div>
-                <h1 className="text-2xl lg:text-4xl font-bold text-white mb-2">
-                  Event Management Center
-                </h1>
-                <p className="text-purple-100 text-sm lg:text-base max-w-2xl">
-                  Manage all alumni events, track attendance, and create engaging experiences for your community.
-                </p>
-              </div>
-            </div>
-
-            {/* Stats Grid - FIXED ALIGNMENT */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+          <TabContentWrapper title="Event Management Center" icon={Calendar}>
+            {/* Stats Grid - Matching alumni dashboard style */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-2">
               {eventStats.map((stat, index) => {
                 const Icon = stat.icon;
                 return (
-                  <div 
-                    key={stat.id}
-                    className="group relative bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 overflow-hidden transform hover:-translate-y-1"
-                  >
-                    <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
-                    <div className="relative z-10">
-                      <div className="flex items-start justify-between mb-4">
-                        <div className={`w-12 h-12 bg-gradient-to-br ${stat.gradient} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300`}>
-                          <Icon className="w-6 h-6 text-white" />
-                        </div>
-                        {stat.trend === 'up' && (
-                          <TrendingUp className="w-5 h-5 text-green-500 flex-shrink-0" />
-                        )}
+                  <div key={index} className={`bg-gradient-to-r ${stat.gradient} rounded-xl p-6 text-white shadow-lg transform hover:scale-[1.02] transition-transform duration-200`}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-lg font-semibold mb-2">{stat.name}</h3>
+                        <p className="text-3xl font-bold">{stat.value}</p>
+                        <p className="text-white/80 text-sm">{stat.change}</p>
                       </div>
-                      <p className="text-sm font-medium text-gray-600 mb-1 truncate">{stat.name}</p>
-                      <p className="text-3xl lg:text-4xl font-bold text-gray-900 mb-2">{stat.value}</p>
-                      <p className="text-sm text-gray-500 flex items-center space-x-1">
-                        <span className="truncate">{stat.change}</span>
-                      </p>
+                      <Icon className="w-9 h-9 opacity-80" />
                     </div>
                   </div>
                 );
               })}
             </div>
 
-            {/* Controls */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+            {/* Controls - Matching first image style */}
+            <div className="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-200">
               <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
                 <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
                   {/* Search */}
@@ -513,12 +508,12 @@ const AdminDashboard = () => {
               </div>
             </div>
 
-            {/* Events Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+            {/* Events List - Matching first image card style */}
+            <div className="space-y-6">
               {filteredEvents.map(event => (
-                <div key={event.id} className="group bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 p-6 border border-gray-100 overflow-hidden transform hover:-translate-y-1">
+                <div key={event.id} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-200">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-bold text-gray-900 group-hover:text-purple-600 transition-colors">
+                    <h3 className="text-xl font-bold text-gray-900">
                       {event.title}
                     </h3>
                     <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">
@@ -526,7 +521,7 @@ const AdminDashboard = () => {
                     </span>
                   </div>
                   
-                  <p className="text-gray-600 mb-4 text-sm leading-relaxed line-clamp-2">
+                  <p className="text-gray-600 mb-4 text-sm leading-relaxed">
                     {event.description}
                   </p>
                   
@@ -536,23 +531,17 @@ const AdminDashboard = () => {
                       <span className="font-medium">{formatDate(event.date)}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
-                      <span className="font-medium mr-2">Time:</span>
-                      {event.time}
+                      <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                      <span className="font-medium">Time: {event.time}</span>
                     </div>
                     <div className="flex items-center text-sm text-gray-600">
-                      <span className="font-medium mr-2">Location:</span>
-                      {event.location}
+                      <MapPin className="w-4 h-4 mr-2 text-red-500" />
+                      <span className="font-medium">Location: {event.location}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center text-sm text-gray-600">
                         <Users className="w-4 h-4 mr-2 text-green-500" />
-                        <span>{event.currentAttendees} / {event.maxAttendees}</span>
-                      </div>
-                      <div className="w-24 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                          style={{ width: `${(event.currentAttendees / event.maxAttendees) * 100}%` }}
-                        ></div>
+                        <span>R: {event.currentAttendees} / {event.maxAttendees}</span>
                       </div>
                     </div>
                   </div>
@@ -588,8 +577,8 @@ const AdminDashboard = () => {
             </div>
 
             {filteredEvents.length === 0 && (
-              <div className="text-center py-12 bg-white rounded-2xl shadow-sm border border-gray-100">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-200">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Calendar className="w-8 h-8 text-gray-400" />
                 </div>
                 <p className="text-gray-500 text-lg">No events found matching your criteria.</p>
@@ -774,25 +763,28 @@ const AdminDashboard = () => {
                 </div>
               </div>
             )}
-          </div>
+          </TabContentWrapper>
         );
       case 'messages':
-        return <div>Redirecting to messages...</div>;
+        return (
+          <TabContentWrapper title="Messages" icon={MessageSquare}>
+            <MessagingPage embedded={true} />
+          </TabContentWrapper>
+        );
       default:
         return (
-          <div className="text-center py-12">
-            <div className="bg-white rounded-2xl shadow-sm p-8 border border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Admin Dashboard</h2>
+          <TabContentWrapper title="Admin Dashboard">
+            <div className="text-center py-12">
               <p className="text-gray-600">Select a tab to manage different sections</p>
             </div>
-          </div>
+          </TabContentWrapper>
         );
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-indigo-50/30">
-      {/* Admin-specific Navbar */}
+    <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-${PRIMARY_TW_COLOR}-50/30 to-${ACCENT_TW_COLOR}-50/30`}>
+      {/* Admin-specific Navbar - Now matches alumni dashboard styling */}
       <AdminNavbar 
         activeTab={activeTab} 
         onTabChange={setActiveTab} 
@@ -801,11 +793,11 @@ const AdminDashboard = () => {
       />
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {renderContent()}
       </div>
 
-      {/* SINGLE Chatbot - REMOVED DUPLICATE */}
+      {/* Chatbot */}
       <Chatbot />
     </div>
   );
