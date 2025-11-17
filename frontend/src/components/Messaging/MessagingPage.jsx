@@ -46,7 +46,11 @@ const MessagingPage = ({ embedded = false }) => {
       });
 
       newSocket.on('newMessage', (data) => {
-        if (data.conversationId === selectedConversation?._id) {
+        // Check if this is our own message to avoid duplicates
+        const isOwnMessage = (data.message.sender?._id || data.message.senderId) === 
+                             (user?.id || user?._id || user?.userId);
+        
+        if (data.conversationId === selectedConversation?._id && !isOwnMessage) {
           setMessages(prev => [...prev, data.message]);
         }
         
@@ -121,13 +125,43 @@ const MessagingPage = ({ embedded = false }) => {
     const messageContent = newMessage;
     setNewMessage('');
 
+    // Create optimistic message object
+    const optimisticMessage = {
+      _id: `temp_${Date.now()}`, // temporary ID with prefix
+      content: messageContent,
+      sender: {
+        _id: user?.id || user?._id || user?.userId,
+        name: user?.name
+      },
+      senderId: user?.id || user?._id || user?.userId, // Add senderId for compatibility
+      createdAt: new Date().toISOString(),
+      conversationId: selectedConversation._id,
+      isOptimistic: true // Flag to identify optimistic messages
+    };
+
+    // Immediately add to UI (optimistic update)
+    setMessages(prev => [...prev, optimisticMessage]);
+
     try {
-      await axios.post(`/api/messages/${selectedConversation._id}`, {
+      const response = await axios.post(`/api/messages/${selectedConversation._id}`, {
         content: messageContent
       });
+      
+      // Replace optimistic message with actual message from server
+      if (response.data.message) {
+        setMessages(prev => 
+          prev.map(msg => 
+            msg._id === optimisticMessage._id ? response.data.message : msg
+          )
+        );
+      }
     } catch (error) {
       console.error('Failed to send message:', error);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg._id !== optimisticMessage._id));
+      // Restore the message in input field
       setNewMessage(messageContent);
+      alert('Failed to send message. Please try again.');
     }
   };
 
@@ -154,7 +188,15 @@ const MessagingPage = ({ embedded = false }) => {
   const isCurrentUserMessage = (message) => {
     const currentUserId = user?.id || user?._id || user?.userId;
     const messageSenderId = message.sender?._id || message.sender?.id || message.senderId;
-    return currentUserId === messageSenderId;
+    
+    // Debug logging
+    if (message.isOptimistic) {
+      console.log('Optimistic message - always current user');
+      return true;
+    }
+    
+    console.log('Current User ID:', currentUserId, 'Message Sender ID:', messageSenderId);
+    return String(currentUserId) === String(messageSenderId);
   };
 
   return (
@@ -336,32 +378,41 @@ const MessagingPage = ({ embedded = false }) => {
                     </div>
 
                     {/* Messages */}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                      {messages.map(message => {
-                        const isCurrentUser = isCurrentUserMessage(message);
-                        
-                        return (
-                          <div
-                            key={message._id}
-                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                          >
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                      {messages.length === 0 ? (
+                        <div className="flex items-center justify-center h-full">
+                          <p className="text-gray-400 text-sm">No messages yet. Start the conversation!</p>
+                        </div>
+                      ) : (
+                        messages.map(message => {
+                          const isCurrentUser = isCurrentUserMessage(message);
+                          
+                          return (
                             <div
-                              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                                isCurrentUser
-                                  ? 'bg-blue-500 text-white'
-                                  : 'bg-gray-100 text-gray-900'
-                              }`}
+                              key={message._id}
+                              className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                             >
-                              <p>{message.content}</p>
-                              <p className={`text-xs mt-1 ${
-                                isCurrentUser ? 'text-blue-100' : 'text-gray-500'
-                              }`}>
-                                {new Date(message.createdAt).toLocaleTimeString()}
-                              </p>
+                              <div
+                                className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
+                                  isCurrentUser
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-white text-gray-900 border border-gray-200'
+                                }`}
+                              >
+                                <p className="text-sm font-medium">{message.content}</p>
+                                <p className={`text-xs mt-1 ${
+                                  isCurrentUser ? 'text-blue-100' : 'text-gray-400'
+                                }`}>
+                                  {message.createdAt ? new Date(message.createdAt).toLocaleTimeString([], { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit' 
+                                  }) : ''}
+                                </p>
+                              </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })
+                      )}
                       <div ref={messagesEndRef} />
                     </div>
 
