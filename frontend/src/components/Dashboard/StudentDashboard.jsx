@@ -33,6 +33,58 @@ const debug = (component, message, data = null) => {
   }
 };
 
+// --- EventsPage Component (Placeholder) ---
+const EventsPage = () => (
+  <div className="text-center py-12">
+    <Calendar className="w-16 h-16 text-blue-500 mx-auto mb-4" />
+    <h3 className="text-2xl font-bold text-gray-900 mb-4">Events Calendar</h3>
+    <p className="text-gray-600 max-w-md mx-auto mb-8">
+      Browse and register for upcoming alumni events, workshops, and networking sessions.
+    </p>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+      {/* Sample Event Cards */}
+      <div className="bg-white border border-blue-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+          <Calendar className="w-6 h-6 text-blue-600" />
+        </div>
+        <h4 className="font-semibold text-gray-900 mb-2">Tech Career Fair 2024</h4>
+        <p className="text-sm text-gray-600 mb-4">Connect with top tech companies and alumni recruiters</p>
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>Dec 20, 2024</span>
+          <span>Virtual</span>
+        </div>
+      </div>
+      
+      <div className="bg-white border border-green-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+          <Users className="w-6 h-6 text-green-600" />
+        </div>
+        <h4 className="font-semibold text-gray-900 mb-2">Alumni Networking Mixer</h4>
+        <p className="text-sm text-gray-600 mb-4">Casual networking event with graduates</p>
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>Jan 15, 2025</span>
+          <span>Campus Hall</span>
+        </div>
+      </div>
+      
+      <div className="bg-white border border-purple-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+          <BookOpen className="w-6 h-6 text-purple-600" />
+        </div>
+        <h4 className="font-semibold text-gray-900 mb-2">Leadership Workshop</h4>
+        <p className="text-sm text-gray-600 mb-4">Develop your leadership skills with industry experts</p>
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <span>Jan 8, 2025</span>
+          <span>Auditorium</span>
+        </div>
+      </div>
+    </div>
+    <button className="mt-8 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+      View All Events
+    </button>
+  </div>
+);
+
 // --- StudentNavbar Component (Refined) ---
 const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -49,6 +101,7 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
     { id: 'overview', name: 'Dashboard', icon: Home },
     { id: 'ai-matching', name: 'AI Match', icon: Brain },
     { id: 'my-mentorships', name: 'Mentorships', icon: Users },
+    { id: 'events', name: 'Events', icon: Calendar },
     { id: 'posts', name: 'Community', icon: FileText },
     { id: 'messages', name: 'Messages', icon: MessageSquare },
     { id: 'setup-profile', name: 'Profile', icon: Settings }
@@ -257,6 +310,8 @@ const StudentDashboard = () => {
           return <TabContentWrapper title="AI Mentor Matching 🧠"><MentorSuggestions /></TabContentWrapper>;
         case 'my-mentorships':
           return <TabContentWrapper title="My Active Mentorships 🤝"><MentorshipDashboard /></TabContentWrapper>;
+        case 'events':
+          return <TabContentWrapper title="Events Calendar" icon={Calendar}><EventsPage /></TabContentWrapper>;
         case 'posts':
           return <TabContentWrapper title="Alumni Community Posts 💬"><PostsPage /></TabContentWrapper>;
         case 'messages':

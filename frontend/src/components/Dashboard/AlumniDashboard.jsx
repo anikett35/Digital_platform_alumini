@@ -9,6 +9,7 @@ import PostsPage from '../Posts/PostsPage';
 import SetupProfile from '../AI/SetupProfile';
 import MentorshipDashboard from '../AI/MentorshipDashboard';
 import MessagingPage from '../Messaging/MessagingPage';
+import EventsPage from '../Events/EventsPage'; // Add this import
 
 // --- CONFIGURATION ---
 const PRIMARY_TW_COLOR = 'green';
@@ -59,6 +60,7 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
         { id: 'posts', name: 'Community Posts', icon: FileText },
         { id: 'mentorship', name: 'Mentorship', icon: Users },
         { id: 'messages', name: 'Messages', icon: MessageSquare },
+        { id: 'events', name: 'Events', icon: Calendar }, // Add Events tab
         { id: 'setup-profile', name: 'Mentor Profile', icon: Settings }
     ];
 
@@ -261,7 +263,7 @@ const AlumniOverviewTab = ({ onTabChange, debugInfo, onSectionChange }) => {
         { id: 'messages', title: 'Messages', description: 'Chat with your connections', icon: MessageSquare, color: 'from-teal-400 to-teal-600', action: () => onTabChange('messages') },
         { id: 'setup-profile', title: 'AI Profile Setup', description: 'Optimize your matching profile', icon: Settings, color: 'from-teal-400 to-teal-600', action: () => onTabChange('setup-profile') },
         { id: 'job-board-section', title: 'Job Board', description: 'Post opportunities for students', icon: Briefcase, color: 'from-orange-400 to-orange-600', action: () => console.log('Navigate to Job Board') },
-        { id: 'events-calendar-section', title: 'Events Calendar', description: 'Organize alumni meetups', icon: Calendar, color: 'from-pink-400 to-pink-600', action: () => console.log('Navigate to Events') }
+        { id: 'events-calendar-section', title: 'Events Calendar', description: 'Organize alumni meetups', icon: Calendar, color: 'from-pink-400 to-pink-600', action: () => onTabChange('events') }
     ];
 
     // Scroll Observation Hook (using useCallback for optimization)
@@ -434,6 +436,8 @@ const AlumniDashboard = () => {
                         <MessagingPage embedded={true} />
                     </TabContentWrapper>
                 );
+            case 'events':
+                return <TabContentWrapper title="Events Calendar" icon={Calendar}><EventsPage /></TabContentWrapper>;
             case 'setup-profile':
                 return <TabContentWrapper title="Mentor Profile Setup" icon={Settings}><SetupProfile /></TabContentWrapper>;
             case 'dashboard':
