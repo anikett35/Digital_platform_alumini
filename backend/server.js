@@ -11,10 +11,9 @@ dotenv.config();
 // Import routes
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
-const messageRoutes = require('./routes/messages'); // Make sure this exists
+const messageRoutes = require('./routes/messages');
 const aiMatchingRoutes = require('./routes/aiMatching');
-
-
+const eventRoutes = require('./routes/events'); // NEW
 
 const app = express();
 const server = http.createServer(app);
@@ -45,17 +44,28 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/posts', postRoutes);
-app.use('/api/messages', messageRoutes); // Add this line
+app.use('/api/messages', messageRoutes);
 app.use('/api/ai-matching', aiMatchingRoutes);
-
+app.use('/api/events', eventRoutes); // NEW
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
 
+  // Join user to their personal room
+  socket.on('join', (userId) => {
+    socket.join(`user_${userId}`);
+    console.log(`User ${userId} joined their room`);
+  });
+
+  // Handle new messages
   socket.on('newMessage', (data) => {
-    // Broadcast message to other users
     socket.broadcast.emit('newMessage', data);
+  });
+
+  // Handle event updates
+  socket.on('eventUpdate', (data) => {
+    io.emit('eventUpdate', data);
   });
 
   socket.on('disconnect', () => {
