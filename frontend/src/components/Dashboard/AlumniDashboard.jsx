@@ -4,27 +4,28 @@ import {
     Bell, Search, LogOut, Menu, X, Home, MessageSquare, AlertCircle, RefreshCw, Shield, ArrowRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-// Assuming these components exist in the specified paths
 import PostsPage from '../Posts/PostsPage';
 import SetupProfile from '../AI/SetupProfile';
 import MentorshipDashboard from '../AI/MentorshipDashboard';
 import MessagingPage from '../Messaging/MessagingPage';
-import EventsPage from '../Events/EventsPage'; // Add this import
+import EventsPage from '../Events/EventsPage';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:5000/api';
 
 // --- CONFIGURATION ---
 const PRIMARY_TW_COLOR = 'green';
 const ACCENT_TW_COLOR = 'emerald';
 const HEADER_GRADIENT = 'from-green-600 to-emerald-600';
-const NAVBAR_HEIGHT = 80; // Approximate height for sticky calculation
+const NAVBAR_HEIGHT = 80;
 
-// --- Quick Actions List for Scroll Navigation (Must match IDs in AlumniOverviewTab) ---
 const quickActionsMenu = [
     { id: 'dashboard-stats', name: 'Overview', icon: Home, color: 'green' },
     { id: 'posts-section', name: 'Share Knowledge', icon: MessageCircle, color: 'blue' },
     { id: 'mentorship-section', name: 'Mentorship Hub', icon: Users, color: 'purple' },
+    { id: 'events-section', name: 'Events', icon: Calendar, color: 'indigo' },
     { id: 'messages', name: 'Messages', icon: MessageSquare, color: 'teal' },
-    { id: 'job-board-section', name: 'Job Board', icon: Briefcase, color: 'orange' },
-    { id: 'events-calendar-section', name: 'Events', icon: Calendar, color: 'pink' }
+    { id: 'job-board-section', name: 'Job Board', icon: Briefcase, color: 'orange' }
 ];
 
 // --- Alumni Navbar Component ---
@@ -36,14 +37,12 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
         { id: 2, type: 'system', message: 'Profile setup reminder', read: false }
     ]);
 
-    // Scroll effect to handle transparency and shadow
     useEffect(() => {
         const handleScroll = () => setIsScrolled(window.scrollY > 20);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Determine if the Quick Actions bar should be sticky
     const [isQuickActionsSticky, setIsQuickActionsSticky] = useState(false);
 
     useEffect(() => {
@@ -59,8 +58,8 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
         { id: 'dashboard', name: 'Dashboard', icon: Home },
         { id: 'posts', name: 'Community Posts', icon: FileText },
         { id: 'mentorship', name: 'Mentorship', icon: Users },
+        { id: 'events', name: 'Events', icon: Calendar },
         { id: 'messages', name: 'Messages', icon: MessageSquare },
-        { id: 'events', name: 'Events', icon: Calendar }, // Add Events tab
         { id: 'setup-profile', name: 'Mentor Profile', icon: Settings }
     ];
 
@@ -69,7 +68,6 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
     const handleTabClick = (tabId) => {
         onTabChange(tabId);
         setIsMobileMenuOpen(false);
-        // Scroll to top when switching main tabs
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
@@ -78,9 +76,7 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
             isScrolled ? 'bg-white/80 backdrop-blur-xl shadow-lg' : 'bg-white shadow-md'
         }`}>
             <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-                {/* Main Navigation Row */}
                 <div className="flex justify-between items-center h-16 lg:h-20">
-                    {/* Logo */}
                     <div className="flex items-center space-x-3 group cursor-pointer">
                         <div className="relative">
                             <div className={`absolute inset-0 bg-gradient-to-br ${HEADER_GRADIENT} rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity`}></div>
@@ -96,7 +92,6 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
                         </div>
                     </div>
 
-                    {/* Desktop Navigation */}
                     <div className="hidden lg:flex items-center space-x-1 bg-gray-50 rounded-xl p-1.5 shadow-inner">
                         {alumniTabs.map((tab) => {
                             const Icon = tab.icon;
@@ -119,9 +114,7 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
                         })}
                     </div>
 
-                    {/* Right Section */}
                     <div className="flex items-center space-x-2 lg:space-x-3">
-                        {/* Search */}
                         <div className="hidden md:block relative">
                             <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                             <input
@@ -131,7 +124,6 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
                             />
                         </div>
 
-                        {/* Notifications */}
                         <button className={`relative p-2 lg:p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200 group border border-transparent hover:border-gray-200`}>
                             <Bell className={`w-5 h-5 text-gray-600 group-hover:text-${PRIMARY_TW_COLOR}-600 transition-colors`} />
                             {unreadNotifications > 0 && (
@@ -139,7 +131,6 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
                             )}
                         </button>
 
-                        {/* User Avatar */}
                         <div className="group relative">
                             <div className={`w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-${PRIMARY_TW_COLOR}-600 to-${ACCENT_TW_COLOR}-500 rounded-full flex items-center justify-center shadow-md cursor-pointer`}>
                                 <span className="text-white text-base font-semibold">
@@ -148,7 +139,6 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
                             </div>
                         </div>
 
-                        {/* Logout */}
                         <button
                             onClick={onLogout}
                             className="hidden sm:block p-2 lg:p-2.5 rounded-full hover:bg-red-50 text-red-600 transition-all duration-200 hover:shadow-md"
@@ -157,7 +147,6 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
                             <LogOut className="w-5 h-5" />
                         </button>
 
-                        {/* Mobile menu button */}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
                             className="lg:hidden p-2 rounded-full hover:bg-gray-100 transition-all duration-200"
@@ -167,7 +156,6 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
                     </div>
                 </div>
 
-                {/* 💡 SCROLL-TRIGGERED QUICK ACTIONS TAB BAR (Desktop Only) */}
                 {activeTab === 'dashboard' && (
                     <div className={`hidden lg:block border-t border-gray-100 transition-all duration-300 ${
                         isQuickActionsSticky ? 'py-2 opacity-100 h-auto' : 'py-0 h-0 opacity-0 overflow-hidden'
@@ -195,7 +183,6 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
                     </div>
                 )}
                 
-                {/* Mobile Navigation */}
                 {isMobileMenuOpen && (
                     <div className="lg:hidden border-t border-gray-100 py-4">
                         <div className="space-y-1">
@@ -234,7 +221,6 @@ const AlumniNavbar = ({ activeTab, onTabChange, onLogout, user, activeSection, o
     );
 };
 
-// --- Reusable Tab Content Wrapper ---
 const TabContentWrapper = ({ title, children, icon: Icon }) => (
     <div className="min-h-[70vh] bg-white rounded-2xl shadow-xl p-6 lg:p-8 border border-gray-100">
         <div className="flex items-center space-x-3 mb-6 border-b pb-4 border-gray-100">
@@ -247,9 +233,8 @@ const TabContentWrapper = ({ title, children, icon: Icon }) => (
     </div>
 );
 
-// --- Alumni Overview Tab Component (SPA anchors) ---
-const AlumniOverviewTab = ({ onTabChange, debugInfo, onSectionChange }) => {
-    // Mock Data
+// --- Alumni Overview Tab Component ---
+const AlumniOverviewTab = ({ onTabChange, debugInfo, onSectionChange, upcomingEvents }) => {
     const stats = [
         { title: 'Profile Completion', value: '85%', detail: 'Almost there!', icon: Shield, color: 'from-green-400 to-green-600' },
         { title: 'Mentorship', value: '3', detail: 'Active mentees', icon: Users, color: 'from-blue-400 to-blue-600' },
@@ -260,29 +245,24 @@ const AlumniOverviewTab = ({ onTabChange, debugInfo, onSectionChange }) => {
     const quickActions = [
         { id: 'posts-section', title: 'Share Knowledge', description: 'Create posts and share experiences', icon: MessageCircle, color: 'from-blue-400 to-blue-600', action: () => onTabChange('posts') },
         { id: 'mentorship-section', title: 'Mentorship Hub', description: 'Manage student connections', icon: Users, color: 'from-purple-400 to-purple-600', action: () => onTabChange('mentorship') },
+        { id: 'events-section', title: 'Events Calendar', description: 'View and register for events', icon: Calendar, color: 'from-indigo-400 to-indigo-600', action: () => onTabChange('events') },
         { id: 'messages', title: 'Messages', description: 'Chat with your connections', icon: MessageSquare, color: 'from-teal-400 to-teal-600', action: () => onTabChange('messages') },
         { id: 'setup-profile', title: 'AI Profile Setup', description: 'Optimize your matching profile', icon: Settings, color: 'from-teal-400 to-teal-600', action: () => onTabChange('setup-profile') },
-        { id: 'job-board-section', title: 'Job Board', description: 'Post opportunities for students', icon: Briefcase, color: 'from-orange-400 to-orange-600', action: () => console.log('Navigate to Job Board') },
-        { id: 'events-calendar-section', title: 'Events Calendar', description: 'Organize alumni meetups', icon: Calendar, color: 'from-pink-400 to-pink-600', action: () => onTabChange('events') }
+        { id: 'job-board-section', title: 'Job Board', description: 'Post opportunities for students', icon: Briefcase, color: 'from-orange-400 to-orange-600', action: () => console.log('Navigate to Job Board') }
     ];
 
-    // Scroll Observation Hook (using useCallback for optimization)
     const observeScroll = useCallback(() => {
         const observer = new IntersectionObserver(
             (entries) => {
                 entries.forEach((entry) => {
-                    // Only update the section if it is currently intersecting
                     if (entry.isIntersecting) {
                         onSectionChange(entry.target.id);
                     }
                 });
             },
-            // The rootMargin determines the "active area" in the viewport.
-            // '-100px 0px -50% 0px' means the top 100px and the bottom 50% are excluded.
-            // This centers the trigger point below the sticky navbar.
             {
                 rootMargin: `-${NAVBAR_HEIGHT + 20}px 0px -50% 0px`, 
-                threshold: 0 // Observe as soon as it crosses the threshold
+                threshold: 0
             }
         );
 
@@ -306,15 +286,21 @@ const AlumniOverviewTab = ({ onTabChange, debugInfo, onSectionChange }) => {
         return cleanup;
     }, [observeScroll]);
 
+    const formatDate = (dateString) => {
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        });
+    };
 
     return (
         <TabContentWrapper title="Alumni Dashboard Overview" icon={Home}>
-            {/* Dashboard Stats - Anchor ID for scroll tracking */}
             <div id="dashboard-stats" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-2"> 
                 {stats.map((stat, index) => {
                     const Icon = stat.icon;
                     return (
-                        <div key={index} className={`${stat.color} rounded-xl p-6 text-white shadow-lg transform hover:scale-[1.02] transition-transform duration-200`}>
+                        <div key={index} className={`bg-gradient-to-r ${stat.color} rounded-xl p-6 text-white shadow-lg transform hover:scale-[1.02] transition-transform duration-200`}>
                             <div className="flex items-center justify-between">
                                 <div>
                                     <h3 className="text-lg font-semibold mb-2">{stat.title}</h3>
@@ -328,7 +314,6 @@ const AlumniOverviewTab = ({ onTabChange, debugInfo, onSectionChange }) => {
                 })}
             </div>
 
-            {/* Quick Actions Grid */}
             <h2 className="text-2xl font-bold text-gray-900 mt-8 mb-4 border-b pb-2 border-gray-100">Quick Actions</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {quickActions.map((item, index) => {
@@ -336,7 +321,7 @@ const AlumniOverviewTab = ({ onTabChange, debugInfo, onSectionChange }) => {
                     return (
                         <div
                             key={index}
-                            id={item.id} // ANCHOR ID ADDED HERE
+                            id={item.id}
                             onClick={item.action}
                             className={`bg-gradient-to-r ${item.color} rounded-xl p-6 text-white cursor-pointer transform hover:scale-[1.02] transition-all duration-300 hover:shadow-2xl hover:ring-2 ring-white/50`}
                         >
@@ -351,8 +336,47 @@ const AlumniOverviewTab = ({ onTabChange, debugInfo, onSectionChange }) => {
                     );
                 })}
             </div>
+
+            {/* Upcoming Events Section */}
+            {upcomingEvents.length > 0 && (
+                <div className="mt-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
+                        <button
+                            onClick={() => onTabChange('events')}
+                            className="text-green-600 hover:text-green-700 font-semibold text-sm flex items-center space-x-1"
+                        >
+                            <span>View All</span>
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {upcomingEvents.slice(0, 3).map((event) => (
+                            <div
+                                key={event._id}
+                                className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-all cursor-pointer"
+                                onClick={() => onTabChange('events')}
+                            >
+                                <span className="inline-block px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full mb-2">
+                                    {event.type}
+                                </span>
+                                <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">{event.title}</h3>
+                                <div className="space-y-1 text-sm text-gray-600">
+                                    <div className="flex items-center">
+                                        <Calendar className="w-4 h-4 mr-2" />
+                                        <span>{formatDate(event.date)}</span>
+                                    </div>
+                                    <div className="flex items-center">
+                                        <Users className="w-4 h-4 mr-2" />
+                                        <span>{event.attendees?.filter(a => a.status === 'registered').length || 0} registered</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
             
-            {/* Debug Information */}
             {process.env.NODE_ENV === 'development' && debugInfo && (
                 <div className="mt-8 p-4 bg-gray-100 rounded-lg border border-gray-200">
                     <h4 className="font-semibold text-gray-800 mb-2">Debug Information</h4>
@@ -371,17 +395,34 @@ const AlumniDashboard = () => {
     const [activeTab, setActiveTab] = useState('dashboard');
     const [loading, setLoading] = useState(false);
     const [debugInfo, setDebugInfo] = useState(null);
-    // State to track the currently visible section for the sticky menu
-    const [activeSection, setActiveSection] = useState('dashboard-stats'); 
+    const [activeSection, setActiveSection] = useState('dashboard-stats');
+    const [upcomingEvents, setUpcomingEvents] = useState([]);
 
-    // Debug logging
+    useEffect(() => {
+        if (activeTab === 'dashboard') {
+            fetchUpcomingEvents();
+        }
+    }, [activeTab]);
+
+    const fetchUpcomingEvents = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await axios.get(`${API_URL}/events?status=upcoming&limit=3`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setUpcomingEvents(response.data.events || []);
+        } catch (error) {
+            console.error('Error fetching upcoming events:', error);
+        }
+    };
+
     useEffect(() => {
         if (process.env.NODE_ENV === 'development') {
             setDebugInfo({
                 userRole: user?.role,
                 userId: user?._id,
                 activeTab,
-                activeSection, // Include the currently visible section
+                activeSection,
                 component: 'AlumniDashboard',
                 lastRender: new Date().toLocaleTimeString()
             });
@@ -393,20 +434,22 @@ const AlumniDashboard = () => {
         setTimeout(() => {
             setActiveTab(tabId);
             setLoading(false);
-            setActiveSection('dashboard-stats'); // Reset active section on tab change
+            setActiveSection('dashboard-stats');
         }, 300);
     };
 
-    // Handler for smooth scrolling to quick action anchors
     const handleQuickActionClick = (sectionId) => {
         if (sectionId === 'messages') {
             handleTabChange('messages');
             return;
         }
+        if (sectionId === 'events-section') {
+            handleTabChange('events');
+            return;
+        }
         
         const element = document.getElementById(sectionId);
         if (element) {
-            // Adjust scroll position using the predefined NAVBAR_HEIGHT
             const topPosition = element.offsetTop - NAVBAR_HEIGHT - 10; 
             window.scrollTo({ top: topPosition, behavior: 'smooth' });
         }
@@ -430,14 +473,14 @@ const AlumniDashboard = () => {
                 return <TabContentWrapper title="Community Posts" icon={FileText}><PostsPage /></TabContentWrapper>;
             case 'mentorship':
                 return <TabContentWrapper title="Mentorship Hub" icon={Users}><MentorshipDashboard /></TabContentWrapper>;
+            case 'events':
+                return <TabContentWrapper title="Events Calendar" icon={Calendar}><EventsPage embedded={true} /></TabContentWrapper>;
             case 'messages':
                 return (
                     <TabContentWrapper title="Messages" icon={MessageSquare}>
                         <MessagingPage embedded={true} />
                     </TabContentWrapper>
                 );
-            case 'events':
-                return <TabContentWrapper title="Events Calendar" icon={Calendar}><EventsPage /></TabContentWrapper>;
             case 'setup-profile':
                 return <TabContentWrapper title="Mentor Profile Setup" icon={Settings}><SetupProfile /></TabContentWrapper>;
             case 'dashboard':
@@ -446,7 +489,8 @@ const AlumniDashboard = () => {
                     <AlumniOverviewTab 
                         onTabChange={handleTabChange} 
                         debugInfo={debugInfo} 
-                        onSectionChange={setActiveSection} // Pass the handler for scroll tracking
+                        onSectionChange={setActiveSection}
+                        upcomingEvents={upcomingEvents}
                     />
                 );
         }
@@ -471,8 +515,8 @@ const AlumniDashboard = () => {
                 onTabChange={handleTabChange} 
                 onLogout={logout}
                 user={user}
-                activeSection={activeSection} // Pass active section to Navbar for highlighting
-                onQuickActionClick={handleQuickActionClick} // Pass click handler for scrolling
+                activeSection={activeSection}
+                onQuickActionClick={handleQuickActionClick}
             />
 
             <main className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">

@@ -7,89 +7,37 @@ import {
   Maximize2, Plus
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-// Assuming these components exist in the specified paths
 import MentorSuggestions from '../AI/MentorSuggestions';
 import SetupProfile from '../AI/SetupProfile';
 import MentorshipDashboard from '../AI/MentorshipDashboard';
 import PostsPage from '../Posts/PostsPage';
 import MessagingPage from '../Messaging/MessagingPage';
+import EventsPage from '../Events/EventsPage';
 import Chatbot from '../Common/Chatbot';
+import axios from 'axios';
+
+const API_URL = 'http://localhost:5000/api';
 
 // --- CONFIGURATION ---
-const PRIMARY_COLOR_HEX = '#0A74DA'; // Deep Ocean Blue
-const ACCENT_COLOR_HEX = '#00C49F'; // Vibrant Teal
-const PRIMARY_TW_COLOR = 'blue'; // Tailwind equivalent for shades
-const ACCENT_TW_COLOR = 'teal'; // Tailwind equivalent for shades
+const PRIMARY_COLOR_HEX = '#0A74DA';
+const ACCENT_COLOR_HEX = '#00C49F';
+const PRIMARY_TW_COLOR = 'blue';
+const ACCENT_TW_COLOR = 'teal';
 
-// Tailwind Utility for the new gradient look
-const PRIMARY_GRADIENT = `from-${PRIMARY_TW_COLOR}-600 to-${PRIMARY_TW_COLOR}-700`; // New Primary Gradient
-const ACCENT_GRADIENT = `from-${ACCENT_TW_COLOR}-500 to-${ACCENT_TW_COLOR}-600`; // New Accent Gradient
-const WELCOME_GRADIENT = 'from-blue-600 via-indigo-600 to-purple-600'; // Richer header gradient
+const PRIMARY_GRADIENT = `from-${PRIMARY_TW_COLOR}-600 to-${PRIMARY_TW_COLOR}-700`;
+const ACCENT_GRADIENT = `from-${ACCENT_TW_COLOR}-500 to-${ACCENT_TW_COLOR}-600`;
+const WELCOME_GRADIENT = 'from-blue-600 via-indigo-600 to-purple-600';
 
-// Debug logger
 const debug = (component, message, data = null) => {
   if (process.env.NODE_ENV === 'development') {
     console.log(`[${component}] ${message}`, data || '');
   }
 };
 
-// --- EventsPage Component (Placeholder) ---
-const EventsPage = () => (
-  <div className="text-center py-12">
-    <Calendar className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-    <h3 className="text-2xl font-bold text-gray-900 mb-4">Events Calendar</h3>
-    <p className="text-gray-600 max-w-md mx-auto mb-8">
-      Browse and register for upcoming alumni events, workshops, and networking sessions.
-    </p>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-      {/* Sample Event Cards */}
-      <div className="bg-white border border-blue-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-        <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
-          <Calendar className="w-6 h-6 text-blue-600" />
-        </div>
-        <h4 className="font-semibold text-gray-900 mb-2">Tech Career Fair 2024</h4>
-        <p className="text-sm text-gray-600 mb-4">Connect with top tech companies and alumni recruiters</p>
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Dec 20, 2024</span>
-          <span>Virtual</span>
-        </div>
-      </div>
-      
-      <div className="bg-white border border-green-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-        <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
-          <Users className="w-6 h-6 text-green-600" />
-        </div>
-        <h4 className="font-semibold text-gray-900 mb-2">Alumni Networking Mixer</h4>
-        <p className="text-sm text-gray-600 mb-4">Casual networking event with graduates</p>
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Jan 15, 2025</span>
-          <span>Campus Hall</span>
-        </div>
-      </div>
-      
-      <div className="bg-white border border-purple-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
-        <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
-          <BookOpen className="w-6 h-6 text-purple-600" />
-        </div>
-        <h4 className="font-semibold text-gray-900 mb-2">Leadership Workshop</h4>
-        <p className="text-sm text-gray-600 mb-4">Develop your leadership skills with industry experts</p>
-        <div className="flex items-center justify-between text-xs text-gray-500">
-          <span>Jan 8, 2025</span>
-          <span>Auditorium</span>
-        </div>
-      </div>
-    </div>
-    <button className="mt-8 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
-      View All Events
-    </button>
-  </div>
-);
-
-// --- StudentNavbar Component (Refined) ---
+// --- StudentNavbar Component ---
 const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -118,7 +66,6 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
     }`}>
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
-          {/* Logo */}
           <div className="flex items-center space-x-3 cursor-pointer">
             <div className={`w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${WELCOME_GRADIENT} rounded-xl flex items-center justify-center shadow-lg`}>
               <GraduationCap className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
@@ -127,11 +74,10 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
               <h1 className={`text-xl lg:text-2xl font-extrabold bg-gradient-to-r ${WELCOME_GRADIENT} bg-clip-text text-transparent`}>
                 AlumniConnect
               </h1>
-              <p className="text-xs text-gray-500">Welcome, **{user?.name?.split(' ')[0] || 'User'}**</p>
+              <p className="text-xs text-gray-500">Welcome, {user?.name?.split(' ')[0] || 'User'}</p>
             </div>
           </div>
 
-          {/* Desktop Navigation (Cleaned up, using new colors) */}
           <div className="hidden lg:flex items-center space-x-1 bg-gray-50 rounded-full p-1.5 shadow-inner border border-gray-100">
             {studentTabs.map((tab) => {
               const Icon = tab.icon;
@@ -155,9 +101,7 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
             })}
           </div>
 
-          {/* Right Section */}
           <div className="flex items-center space-x-2 lg:space-x-3">
-            {/* Search (Simplified look) */}
             <div className="hidden md:block relative">
               <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
               <input
@@ -167,22 +111,19 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
               />
             </div>
 
-            {/* Notifications */}
             <button className={`relative p-2 lg:p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200 group border border-transparent hover:border-gray-200`}>
               <Bell className={`w-5 h-5 text-gray-600 group-hover:text-${PRIMARY_TW_COLOR}-600 transition-colors`} />
               <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
 
-            {/* User Avatar */}
             <div className="group relative">
-                <div className={`w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-${PRIMARY_TW_COLOR}-600 to-${ACCENT_TW_COLOR}-500 rounded-full flex items-center justify-center shadow-md cursor-pointer`}>
-                    <span className="text-white text-base font-semibold">
-                        {user?.name?.charAt(0) || 'S'}
-                    </span>
-                </div>
+              <div className={`w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-${PRIMARY_TW_COLOR}-600 to-${ACCENT_TW_COLOR}-500 rounded-full flex items-center justify-center shadow-md cursor-pointer`}>
+                <span className="text-white text-base font-semibold">
+                  {user?.name?.charAt(0) || 'S'}
+                </span>
+              </div>
             </div>
 
-            {/* Logout */}
             <button
               onClick={onLogout}
               className="hidden sm:block p-2 lg:p-2.5 rounded-full hover:bg-red-50 text-red-600 transition-all duration-200 hover:shadow-md"
@@ -191,7 +132,6 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
               <LogOut className="w-5 h-5" />
             </button>
 
-            {/* Mobile menu button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden p-2 rounded-full hover:bg-gray-100 transition-all duration-200"
@@ -201,7 +141,6 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="lg:hidden border-t border-gray-100 py-4">
             <div className="space-y-1">
@@ -240,15 +179,34 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   );
 };
 
-// --- StudentDashboard Component (Refined) ---
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   debug('StudentDashboard', 'Component mounted', { user: user?.name, activeTab });
+
+  // Fetch upcoming events for the overview
+  useEffect(() => {
+    if (activeTab === 'overview') {
+      fetchUpcomingEvents();
+    }
+  }, [activeTab]);
+
+  const fetchUpcomingEvents = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${API_URL}/events?status=upcoming&limit=3`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUpcomingEvents(response.data.events || []);
+    } catch (error) {
+      console.error('Error fetching upcoming events:', error);
+    }
+  };
 
   const stats = [
     {
@@ -276,12 +234,6 @@ const StudentDashboard = () => {
     { id: 4, type: 'message', message: 'Sarah Wilson sent you a message', time: '2 days ago', icon: MessageCircle, color: 'orange', avatar: 'SW' }
   ];
 
-  const upcomingEvents = [
-    { id: 1, title: 'Career Guidance Workshop', date: 'Dec 15, 2024', time: '2:00 PM', attendees: 45, type: 'Workshop', location: 'Virtual', color: PRIMARY_TW_COLOR },
-    { id: 2, title: 'Alumni Networking Meet', date: 'Dec 18, 2024', time: '6:00 PM', attendees: 120, type: 'Networking', location: 'Campus Hall', color: 'purple' },
-    { id: 3, title: 'Industry Expert Talk', date: 'Dec 22, 2024', time: '11:00 AM', attendees: 200, type: 'Seminar', location: 'Auditorium', color: 'green' }
-  ];
-
   const handleTabChange = (tabId) => {
     debug('StudentDashboard', 'Tab change attempted', { from: activeTab, to: tabId });
     setActiveTab(tabId);
@@ -301,6 +253,7 @@ const StudentDashboard = () => {
               upcomingEvents={upcomingEvents}
               onNavigateToPosts={() => handleTabChange('posts')}
               onNavigateToMessages={() => handleTabChange('messages')}
+              onNavigateToEvents={() => handleTabChange('events')}
               loading={loading}
               primaryColor={PRIMARY_TW_COLOR}
               accentColor={ACCENT_TW_COLOR}
@@ -311,7 +264,7 @@ const StudentDashboard = () => {
         case 'my-mentorships':
           return <TabContentWrapper title="My Active Mentorships 🤝"><MentorshipDashboard /></TabContentWrapper>;
         case 'events':
-          return <TabContentWrapper title="Events Calendar" icon={Calendar}><EventsPage /></TabContentWrapper>;
+          return <TabContentWrapper title="Events Calendar 📅" icon={Calendar}><EventsPage embedded={true} /></TabContentWrapper>;
         case 'posts':
           return <TabContentWrapper title="Alumni Community Posts 💬"><PostsPage /></TabContentWrapper>;
         case 'messages':
@@ -360,7 +313,6 @@ const StudentDashboard = () => {
         user={user}
       />
 
-      {/* Error Banner */}
       {error && (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
           <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg flex justify-between items-center">
@@ -378,32 +330,28 @@ const StudentDashboard = () => {
         </div>
       )}
 
-      {/* Main Content: Add padding-bottom to ensure chatbot doesn't overlap important content */}
       <main className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
         {renderContent()}
       </main>
 
-      {/* AI Chatbot */}
       <Chatbot />
     </div>
   );
 };
 
-// New Wrapper to keep all tab contents visually consistent and contained
 const TabContentWrapper = ({ title, children, icon: Icon }) => (
-    <div className="min-h-[70vh] bg-white rounded-2xl shadow-xl p-6 lg:p-8 border border-gray-100">
-        <div className="flex items-center space-x-3 mb-6 border-b pb-4 border-gray-100">
-            {Icon && <Icon className={`w-7 h-7 text-${PRIMARY_TW_COLOR}-600`} />}
-            <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-        </div>
-        <div className="space-y-6">
-            {children}
-        </div>
+  <div className="min-h-[70vh] bg-white rounded-2xl shadow-xl p-6 lg:p-8 border border-gray-100">
+    <div className="flex items-center space-x-3 mb-6 border-b pb-4 border-gray-100">
+      {Icon && <Icon className={`w-7 h-7 text-${PRIMARY_TW_COLOR}-600`} />}
+      <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
     </div>
+    <div className="space-y-6">
+      {children}
+    </div>
+  </div>
 );
 
-// --- OverviewTab Component (Fully Refined) ---
-const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPosts, onNavigateToMessages, loading, primaryColor, accentColor }) => {
+const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPosts, onNavigateToMessages, onNavigateToEvents, loading, primaryColor, accentColor }) => {
   const [localLoading, setLocalLoading] = useState(false);
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0] || 'Student';
@@ -416,34 +364,39 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
       onNavigateToPosts();
     } else if (action === 'messages') {
       onNavigateToMessages();
+    } else if (action === 'events') {
+      onNavigateToEvents();
     }
   };
 
-  // 1. Map for Activity Icon Backgrounds (Gradients)
-  // This map uses the color string from the recentActivities data
   const activityGradientMap = {
     [primaryColor]: PRIMARY_GRADIENT,
     [accentColor]: ACCENT_GRADIENT,
     'purple': 'from-purple-500 to-purple-600',
-    'orange': 'from-orange-500 to-red-500', 
-    'blue': PRIMARY_GRADIENT, // Redundancy for easy lookup
-    'teal': ACCENT_GRADIENT, // Redundancy for easy lookup
+    'orange': 'from-orange-500 to-red-500',
+    'blue': PRIMARY_GRADIENT,
+    'teal': ACCENT_GRADIENT,
   };
 
-  // 2. Map for Event Card Styling (Border/BG)
-  // This map uses the color string from the upcomingEvents data
   const eventColorMap = {
     [primaryColor]: `text-${primaryColor}-600 bg-${primaryColor}-50 border-${primaryColor}-500`,
     [accentColor]: `text-${accentColor}-600 bg-${accentColor}-50 border-${accentColor}-500`,
     'purple': 'border-purple-500 bg-purple-50',
-    'green': 'border-green-500 bg-green-50', 
-  }
+    'green': 'border-green-500 bg-green-50',
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   return (
     <div className="space-y-6 lg:space-y-8">
-      {/* Welcome Header (Sophisticated Background) */}
       <div className={`relative overflow-hidden bg-gradient-to-r ${WELCOME_GRADIENT} rounded-2xl shadow-2xl p-6 lg:p-10 transition-all duration-500`}>
-        <div className="absolute inset-0 bg-black/20"></div> {/* Dark overlay for text contrast */}
+        <div className="absolute inset-0 bg-black/20"></div>
         <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -mr-40 -mt-40 blur-3xl transform rotate-12"></div>
         <div className="relative z-10">
           <div className="flex items-center space-x-2 mb-3">
@@ -451,24 +404,23 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
             <span className="text-white text-sm font-semibold tracking-wider uppercase">Your Hub</span>
           </div>
           <h1 className="text-3xl lg:text-5xl font-extrabold text-white mb-3 tracking-tight">
-            Hello, **{firstName}**! 👋
+            Hello, {firstName}! 👋
           </h1>
           <p className="text-blue-100 text-base lg:text-lg max-w-3xl font-light">
             You're making great progress! Check your latest stats and opportunities below.
           </p>
           <div className="mt-6">
             <button 
-                onClick={() => handleQuickAction('setup-profile')}
-                className={`flex items-center space-x-2 px-4 py-2 bg-white text-${primaryColor}-600 rounded-full text-sm font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all`}
+              onClick={() => handleQuickAction('setup-profile')}
+              className={`flex items-center space-x-2 px-4 py-2 bg-white text-${primaryColor}-600 rounded-full text-sm font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all`}
             >
-                <span>Complete Your Profile</span>
-                <ArrowRight className="w-4 h-4" />
+              <span>Complete Your Profile</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => {
           const Icon = stat.icon;
@@ -500,9 +452,7 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
         })}
       </div>
 
-      {/* Main Content Grid: Activities and Events */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        {/* Recent Activities (Main section, 2/3 width) */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 h-full">
             <div className="flex items-center justify-between mb-6 border-b pb-4 border-gray-100">
@@ -514,7 +464,6 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
             </div>
             <div className="space-y-4">
               {recentActivities.map((activity) => {
-                // Use dedicated activityGradientMap
                 const gradientClass = activityGradientMap[activity.color] || 'from-gray-400 to-gray-500';
                 
                 return (
@@ -539,72 +488,79 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
               })}
             </div>
             <div className="mt-6 text-center">
-                <button 
-                    className={`text-${primaryColor}-600 hover:text-${primaryColor}-800 font-semibold text-sm transition-colors`}
-                    onClick={() => handleQuickAction('messages')}
-                >
-                    See all messages and alerts
-                </button>
+              <button 
+                className={`text-${primaryColor}-600 hover:text-${primaryColor}-800 font-semibold text-sm transition-colors`}
+                onClick={() => handleQuickAction('messages')}
+              >
+                See all messages and alerts
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Upcoming Events (1/3 width) */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
             <div className="flex items-center justify-between mb-6 border-b pb-4 border-gray-100">
               <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
-              <Maximize2 className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors" />
+              <Maximize2 
+                className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
+                onClick={() => handleQuickAction('events')}
+              />
             </div>
             <div className="space-y-4">
-              {upcomingEvents.map((event) => {
-                // Use dedicated eventColorMap
-                const colorClasses = eventColorMap[event.color] || 'border-gray-500 bg-gray-50';
-                
-                return (
-                  <div 
-                    key={event.id} 
-                    className={`border-l-4 ${colorClasses} pl-4 pr-3 py-3 rounded-r-xl transition-all duration-200 cursor-pointer hover:shadow-md group`}
-                    onClick={() => debug('OverviewTab', 'Event clicked', event)}
-                  >
-                    <h3 className="font-semibold text-gray-900 text-base mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                      {event.title}
-                    </h3>
-                    <div className="space-y-1 text-sm">
-                      <p className="text-gray-700 flex items-center space-x-2">
-                        <Calendar className="w-4 h-4 text-gray-500" />
-                        <span className="font-medium">{event.date} • {event.time}</span>
-                      </p>
-                      <p className="text-gray-600 flex items-center space-x-2">
-                        <MapPin className="w-4 h-4 text-gray-500" />
-                        <span>{event.location}</span>
-                      </p>
+              {upcomingEvents.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500 text-sm">No upcoming events</p>
+                </div>
+              ) : (
+                upcomingEvents.map((event) => {
+                  const colorClasses = 'border-blue-500 bg-blue-50';
+                  
+                  return (
+                    <div 
+                      key={event._id} 
+                      className={`border-l-4 ${colorClasses} pl-4 pr-3 py-3 rounded-r-xl transition-all duration-200 cursor-pointer hover:shadow-md group`}
+                      onClick={() => handleQuickAction('events')}
+                    >
+                      <h3 className="font-semibold text-gray-900 text-base mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
+                        {event.title}
+                      </h3>
+                      <div className="space-y-1 text-sm">
+                        <p className="text-gray-700 flex items-center space-x-2">
+                          <Calendar className="w-4 h-4 text-gray-500" />
+                          <span className="font-medium">{formatDate(event.date)} • {event.time}</span>
+                        </p>
+                        <p className="text-gray-600 flex items-center space-x-2">
+                          <MapPin className="w-4 h-4 text-gray-500" />
+                          <span>{event.location}</span>
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-800">
+                          {event.type}
+                        </span>
+                        <span className="text-sm text-gray-500 flex items-center space-x-1">
+                          <Users className="w-3 h-3" />
+                          <span>{event.attendees?.filter(a => a.status === 'registered').length || 0} attending</span>
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                      <span className={`text-xs font-semibold px-3 py-1 rounded-full ${colorClasses.split(' ').filter(c => c.startsWith('text-') || c.startsWith('bg-')).join(' ')}`}>
-                        {event.type}
-                      </span>
-                      <span className="text-sm text-gray-500 flex items-center space-x-1">
-                        <Users className="w-3 h-3" />
-                        <span>**{event.attendees}** attending</span>
-                      </span>
-                    </div>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
             <button 
-              className={`w-full mt-6 py-3 bg-gradient-to-r from-${accentColor}-500 to-${accentColor}-600 text-white rounded-xl font-semibold hover:shadow-xl transform hover:scale-[1.01] transition-all duration-200 flex items-center justify-center space-x-2`}
-              onClick={() => debug('OverviewTab', 'View all events clicked')}
+              onClick={() => handleQuickAction('events')}
+              className="w-full mt-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transform hover:scale-[1.01] transition-all duration-200 flex items-center justify-center space-x-2"
             >
-                <Plus className="w-5 h-5" />
-                <span>Register for Event</span>
+              <Calendar className="w-5 h-5" />
+              <span>View All Events</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions (Refined) */}
       <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-8 border border-gray-100">
         <div className="flex items-center space-x-2 mb-6 border-b pb-4 border-gray-100">
           <div className={`w-8 h-8 bg-gradient-to-br from-${primaryColor}-500 to-${accentColor}-500 rounded-lg flex items-center justify-center shadow-md`}>
@@ -628,10 +584,10 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
             loading={localLoading}
           />
           <QuickActionButton
-            icon={Briefcase}
-            label="Browse Jobs"
-            gradient="from-purple-500 to-indigo-600"
-            onClick={() => handleQuickAction('jobs')}
+            icon={Calendar}
+            label="Browse Events"
+            gradient="from-blue-500 to-indigo-600"
+            onClick={() => handleQuickAction('events')}
             loading={localLoading}
           />
           <QuickActionButton
@@ -647,7 +603,6 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
   );
 };
 
-// Reusable Quick Action Button Component (Refined)
 const QuickActionButton = ({ icon: Icon, label, gradient, onClick, loading }) => {
   return (
     <button 
@@ -657,7 +612,7 @@ const QuickActionButton = ({ icon: Icon, label, gradient, onClick, loading }) =>
     >
       <div className="relative z-10 flex flex-col items-center space-y-3">
         {loading ? (
-          <RefreshCw className={`w-14 h-14 text-gray-400 mb-2 animate-spin`} />
+          <RefreshCw className="w-14 h-14 text-gray-400 mb-2 animate-spin" />
         ) : (
           <div className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all duration-300`}>
             <Icon className="w-7 h-7 text-white" />
@@ -671,7 +626,6 @@ const QuickActionButton = ({ icon: Icon, label, gradient, onClick, loading }) =>
   );
 };
 
-// Error Fallback Component (No change, remains functional)
 const ErrorFallback = ({ error, onRetry }) => (
   <div className="flex items-center justify-center py-12">
     <div className="text-center max-w-md">
