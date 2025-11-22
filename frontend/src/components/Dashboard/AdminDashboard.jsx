@@ -18,11 +18,15 @@ import {
   Trash2,
   Download,
   MapPin,
-  Clock
+  Clock,
+  Activity,
+  UserPlus,
+  CalendarPlus
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Chatbot from '../Common/Chatbot';
 import MessagingPage from '../Messaging/MessagingPage';
+import UsersManagement from './UsersManagement';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
@@ -32,7 +36,7 @@ const PRIMARY_TW_COLOR = 'purple';
 const ACCENT_TW_COLOR = 'indigo';
 const HEADER_GRADIENT = 'from-purple-600 to-indigo-600';
 
-// Admin-specific Navbar Component
+// Admin Navbar Component
 const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -44,6 +48,7 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   }, []);
 
   const adminTabs = [
+    { id: 'dashboard', name: 'Dashboard', icon: Activity },
     { id: 'events', name: 'Events', icon: Calendar },
     { id: 'users', name: 'Users', icon: Users },
     { id: 'messages', name: 'Messages', icon: MessageSquare },
@@ -196,7 +201,200 @@ const TabContentWrapper = ({ title, children, icon: Icon }) => (
   </div>
 );
 
-const AdminDashboard = () => {
+// Dashboard Overview Component
+const DashboardOverview = ({ onNavigate }) => {
+  const [stats, setStats] = useState({
+    totalEvents: 0,
+    totalUsers: 0,
+    totalAlumni: 0,
+    totalStudents: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Fetch events stats
+      const eventsResponse = await axios.get(`${API_URL}/events/stats`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Fetch users
+      const usersResponse = await axios.get(`${API_URL}/auth/users`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const users = usersResponse.data.users || [];
+      
+      setStats({
+        totalEvents: eventsResponse.data.stats.totalEvents,
+        totalUsers: users.length,
+        totalAlumni: users.filter(u => u.role === 'alumni').length,
+        totalStudents: users.filter(u => u.role === 'student').length
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const quickActions = [
+    {
+      title: 'Create Event',
+      description: 'Add a new event to the platform',
+      icon: CalendarPlus,
+      gradient: 'from-purple-500 to-indigo-600',
+      action: () => onNavigate('events')
+    },
+    {
+      title: 'Manage Users',
+      description: 'View and manage all users',
+      icon: UserPlus,
+      gradient: 'from-blue-500 to-blue-600',
+      action: () => onNavigate('users')
+    },
+    {
+      title: 'View Analytics',
+      description: 'Check platform statistics',
+      icon: BarChart3,
+      gradient: 'from-green-500 to-emerald-600',
+      action: () => onNavigate('analytics')
+    },
+    {
+      title: 'Messages',
+      description: 'Manage communications',
+      icon: MessageSquare,
+      gradient: 'from-orange-500 to-red-500',
+      action: () => onNavigate('messages')
+    }
+  ];
+
+  return (
+    <div className="space-y-8">
+      {/* Welcome Banner */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 rounded-2xl p-8 text-white shadow-2xl">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl"></div>
+        <div className="relative z-10">
+          <h1 className="text-3xl lg:text-4xl font-bold mb-3">Welcome to Admin Portal! 👋</h1>
+          <p className="text-blue-100 text-lg">Manage your platform efficiently from one place</p>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-gradient-to-r from-purple-400 to-purple-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Total Events</h3>
+              <p className="text-4xl font-bold">{loading ? '...' : stats.totalEvents}</p>
+              <p className="text-white/80 text-sm mt-2">Platform events</p>
+            </div>
+            <Calendar className="w-12 h-12 opacity-80" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-blue-400 to-blue-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Total Users</h3>
+              <p className="text-4xl font-bold">{loading ? '...' : stats.totalUsers}</p>
+              <p className="text-white/80 text-sm mt-2">Registered users</p>
+            </div>
+            <Users className="w-12 h-12 opacity-80" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-green-400 to-green-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Alumni</h3>
+              <p className="text-4xl font-bold">{loading ? '...' : stats.totalAlumni}</p>
+              <p className="text-white/80 text-sm mt-2">Active alumni</p>
+            </div>
+            <TrendingUp className="w-12 h-12 opacity-80" />
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-orange-400 to-orange-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold mb-2">Students</h3>
+              <p className="text-4xl font-bold">{loading ? '...' : stats.totalStudents}</p>
+              <p className="text-white/80 text-sm mt-2">Current students</p>
+            </div>
+            <Users className="w-12 h-12 opacity-80" />
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {quickActions.map((action, index) => {
+            const Icon = action.icon;
+            return (
+              <button
+                key={index}
+                onClick={action.action}
+                className={`bg-gradient-to-r ${action.gradient} rounded-xl p-6 text-white hover:shadow-2xl transform hover:scale-105 transition-all duration-300 text-left`}
+              >
+                <Icon className="w-10 h-10 mb-4 opacity-90" />
+                <h3 className="text-xl font-bold mb-2">{action.title}</h3>
+                <p className="text-white/90 text-sm">{action.description}</p>
+                <ArrowRight className="w-5 h-5 mt-4 opacity-75" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">Recent Activity</h2>
+        <div className="space-y-4">
+          <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-900">New event created</p>
+              <p className="text-sm text-gray-500">2 hours ago</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <Users className="w-5 h-5 text-green-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-900">New user registered</p>
+              <p className="text-sm text-gray-500">5 hours ago</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-900">New message received</p>
+              <p className="text-sm text-gray-500">1 day ago</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// EVENTS MANAGEMENT (Your existing code - keeping it intact)
+const EventsManagement = () => {
   const [events, setEvents] = useState([]);
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
@@ -216,7 +414,6 @@ const AdminDashboard = () => {
     status: 'all'
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState('events');
   const [loading, setLoading] = useState(false);
   const [eventStats, setEventStats] = useState([
     {
@@ -257,10 +454,8 @@ const AdminDashboard = () => {
     }
   ]);
 
-  const { user, logout } = useAuth();
   const eventTypes = ['Workshop', 'Networking', 'Seminar', 'Conference', 'Webinar', 'Social', 'Career Fair'];
   
-  // Fetch events on component mount and when filters change
   useEffect(() => {
     fetchEvents();
     fetchEventStats();
@@ -374,7 +569,6 @@ const AdminDashboard = () => {
   };
 
   const handleEditEvent = (event) => {
-    // Format date for input field (YYYY-MM-DD)
     const formattedDate = new Date(event.date).toISOString().split('T')[0];
     
     setEventForm({
@@ -421,7 +615,6 @@ const AdminDashboard = () => {
     try {
       const token = localStorage.getItem('token');
       
-      // Prepare the data
       const eventData = {
         ...eventForm,
         maxAttendees: parseInt(eventForm.maxAttendees)
@@ -430,7 +623,6 @@ const AdminDashboard = () => {
       console.log('Submitting event data:', eventData);
       
       if (editingEvent) {
-        // Update existing event
         await axios.put(
           `${API_URL}/events/${editingEvent}`,
           eventData,
@@ -440,7 +632,6 @@ const AdminDashboard = () => {
         );
         alert('Event updated successfully!');
       } else {
-        // Create new event
         await axios.post(
           `${API_URL}/events`,
           eventData,
@@ -485,359 +676,401 @@ const AdminDashboard = () => {
     return matchesType && matchesStatus && matchesSearch;
   });
 
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'events':
-        return (
-          <TabContentWrapper title="Event Management Center" icon={Calendar}>
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-2">
-              {eventStats.map((stat, index) => {
-                const Icon = stat.icon;
-                return (
-                  <div key={index} className={`bg-gradient-to-r ${stat.gradient} rounded-xl p-6 text-white shadow-lg transform hover:scale-[1.02] transition-transform duration-200`}>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="text-lg font-semibold mb-2">{stat.name}</h3>
-                        <p className="text-3xl font-bold">{stat.value}</p>
-                        <p className="text-white/80 text-sm">{stat.change}</p>
-                      </div>
-                      <Icon className="w-9 h-9 opacity-80" />
+  return (
+    <div className="space-y-6">
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 pt-2">
+        {eventStats.map((stat, index) => {
+          const Icon = stat.icon;
+          return (
+            <div key={index} className={`bg-gradient-to-r ${stat.gradient} rounded-xl p-6 text-white shadow-lg transform hover:scale-[1.02] transition-transform duration-200`}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">{stat.name}</h3>
+                  <p className="text-3xl font-bold">{stat.value}</p>
+                  <p className="text-white/80 text-sm">{stat.change}</p>
+                </div>
+                <Icon className="w-9 h-9 opacity-80" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Controls */}
+      <div className="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-200">
+        <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
+          <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
+            <div className="flex-1 relative">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search events..."
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <select
+                className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                value={filters.type}
+                onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+              >
+                <option value="all">All Types</option>
+                {eventTypes.map(type => (
+                  <option key={type} value={type}>{type}</option>
+                ))}
+              </select>
+              
+              <select
+                className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                value={filters.status}
+                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+              >
+                <option value="all">All Status</option>
+                <option value="upcoming">Upcoming</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+          </div>
+          
+          <div className="flex gap-3 w-full lg:w-auto">
+            <button className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-semibold">
+              <Download className="w-4 h-4" />
+              <span>Export</span>
+            </button>
+            <button
+              onClick={handleCreateEvent}
+              className="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
+            >
+              <Plus className="w-5 h-5" />
+              <span>Create Event</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading events...</p>
+        </div>
+      )}
+
+      {/* Events List */}
+      {!loading && (
+        <div className="space-y-6">
+          {filteredEvents.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-200">
+              <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="text-gray-500 text-lg">No events found matching your criteria.</p>
+              <button
+                onClick={handleCreateEvent}
+                className="mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
+              >
+                Create Your First Event
+              </button>
+            </div>
+          ) : (
+            filteredEvents.map(event => (
+              <div key={event._id} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-200">
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {event.title}
+                  </h3>
+                  <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">
+                    {event.type}
+                  </span>
+                </div>
+                
+                <p className="text-gray-600 mb-4 text-sm leading-relaxed">
+                  {event.description}
+                </p>
+                
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Calendar className="w-4 h-4 mr-2 text-purple-500" />
+                    <span className="font-medium">{formatDate(event.date)}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <Clock className="w-4 h-4 mr-2 text-blue-500" />
+                    <span className="font-medium">Time: {event.time}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <MapPin className="w-4 h-4 mr-2 text-red-500" />
+                    <span className="font-medium">Location: {event.location}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <Users className="w-4 h-4 mr-2 text-green-500" />
+                      <span>Registered: {getCurrentAttendees(event)} / {event.maxAttendees}</span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
+                </div>
+                
+                <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    event.status === 'upcoming' ? 'bg-green-100 text-green-800' :
+                    event.status === 'completed' ? 'bg-gray-100 text-gray-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {event.status}
+                  </span>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEditEvent(event)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                      title="Edit Event"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEvent(event._id)}
+                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
+                      title="Delete Event"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
-            {/* Controls */}
-            <div className="bg-gray-50 rounded-xl p-6 mb-6 border border-gray-200">
-              <div className="flex flex-col lg:flex-row gap-4 justify-between items-start lg:items-center">
-                <div className="flex flex-col lg:flex-row gap-4 flex-1 w-full">
-                  <div className="flex-1 relative">
-                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+      {/* Event Form Modal */}
+      {showEventForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 lg:p-8">
+              <h2 className="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                {editingEvent ? 'Edit Event' : 'Create New Event'}
+              </h2>
+              
+              <form onSubmit={handleSubmitEvent} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Event Title *
+                    </label>
                     <input
                       type="text"
-                      placeholder="Search events..."
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      name="title"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                      value={eventForm.title}
+                      onChange={handleInputChange}
+                      placeholder="Enter event title"
                     />
                   </div>
                   
-                  <div className="flex gap-3">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Event Type *
+                    </label>
                     <select
-                      className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      value={filters.type}
-                      onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+                      name="type"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                      value={eventForm.type}
+                      onChange={handleInputChange}
                     >
-                      <option value="all">All Types</option>
                       {eventTypes.map(type => (
                         <option key={type} value={type}>{type}</option>
                       ))}
                     </select>
-                    
-                    <select
-                      className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      value={filters.status}
-                      onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
-                    >
-                      <option value="all">All Status</option>
-                      <option value="upcoming">Upcoming</option>
-                      <option value="completed">Completed</option>
-                      <option value="cancelled">Cancelled</option>
-                    </select>
                   </div>
                 </div>
-                
-                <div className="flex gap-3 w-full lg:w-auto">
-                  <button className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-semibold">
-                    <Download className="w-4 h-4" />
-                    <span>Export</span>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Date *
+                    </label>
+                    <input
+                      type="date"
+                      name="date"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                      value={eventForm.date}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Time *
+                    </label>
+                    <input
+                      type="time"
+                      name="time"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                      value={eventForm.time}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Location *
+                    </label>
+                    <input
+                      type="text"
+                      name="location"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                      value={eventForm.location}
+                      onChange={handleInputChange}
+                      placeholder="Enter event location"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Max Attendees *
+                    </label>
+                    <input
+                      type="number"
+                      name="maxAttendees"
+                      required
+                      min="1"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                      value={eventForm.maxAttendees}
+                      onChange={handleInputChange}
+                      placeholder="Enter maximum attendees"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Description *
+                  </label>
+                  <textarea
+                    name="description"
+                    required
+                    rows="4"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    value={eventForm.description}
+                    onChange={handleInputChange}
+                    placeholder="Describe your event..."
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Duration *
+                    </label>
+                    <input
+                      type="text"
+                      name="duration"
+                      required
+                      placeholder="e.g., 2 hours"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                      value={eventForm.duration}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">
+                      Organizer *
+                    </label>
+                    <input
+                      type="text"
+                      name="organizer"
+                      required
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                      value={eventForm.organizer}
+                      onChange={handleInputChange}
+                      placeholder="Event organizer"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => setShowEventForm(false)}
+                    className="px-8 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-semibold"
+                  >
+                    Cancel
                   </button>
                   <button
-                    onClick={handleCreateEvent}
-                    className="flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
+                    type="submit"
+                    className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
                   >
-                    <Plus className="w-5 h-5" />
-                    <span>Create Event</span>
+                    {editingEvent ? 'Update Event' : 'Create Event'}
                   </button>
                 </div>
-              </div>
+              </form>
             </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
-            {/* Loading State */}
-            {loading && (
-              <div className="text-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading events...</p>
-              </div>
-            )}
+// Main AdminDashboard Component
+const AdminDashboard = () => {
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const { user, logout } = useAuth();
 
-            {/* Events List */}
-            {!loading && (
-              <div className="space-y-6">
-                {filteredEvents.length === 0 ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-200">
-                    <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Calendar className="w-8 h-8 text-gray-400" />
-                    </div>
-                    <p className="text-gray-500 text-lg">No events found matching your criteria.</p>
-                    <button
-                      onClick={handleCreateEvent}
-                      className="mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
-                    >
-                      Create Your First Event
-                    </button>
-                  </div>
-                ) : (
-                  filteredEvents.map(event => (
-                    <div key={event._id} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-200">
-                      <div className="flex justify-between items-start mb-4">
-                        <h3 className="text-xl font-bold text-gray-900">
-                          {event.title}
-                        </h3>
-                        <span className="bg-purple-100 text-purple-800 text-xs font-semibold px-3 py-1 rounded-full">
-                          {event.type}
-                        </span>
-                      </div>
-                      
-                      <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                        {event.description}
-                      </p>
-                      
-                      <div className="space-y-3 mb-6">
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Calendar className="w-4 h-4 mr-2 text-purple-500" />
-                          <span className="font-medium">{formatDate(event.date)}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <Clock className="w-4 h-4 mr-2 text-blue-500" />
-                          <span className="font-medium">Time: {event.time}</span>
-                        </div>
-                        <div className="flex items-center text-sm text-gray-600">
-                          <MapPin className="w-4 h-4 mr-2 text-red-500" />
-                          <span className="font-medium">Location: {event.location}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center text-sm text-gray-600">
-                            <Users className="w-4 h-4 mr-2 text-green-500" />
-                            <span>Registered: {getCurrentAttendees(event)} / {event.maxAttendees}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                          event.status === 'upcoming' ? 'bg-green-100 text-green-800' :
-                          event.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-                          'bg-red-100 text-red-800'
-                        }`}>
-                          {event.status}
-                        </span>
-                        
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditEvent(event)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors duration-200"
-                            title="Edit Event"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteEvent(event._id)}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                            title="Delete Event"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            {/* Event Form Modal */}
-            {showEventForm && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                  <div className="p-6 lg:p-8">
-                    <h2 className="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                      {editingEvent ? 'Edit Event' : 'Create New Event'}
-                    </h2>
-                    
-                    <form onSubmit={handleSubmitEvent} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3">
-                            Event Title *
-                          </label>
-                          <input
-                            type="text"
-                            name="title"
-                            required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                            value={eventForm.title}
-                            onChange={handleInputChange}
-                            placeholder="Enter event title"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3">
-                            Event Type *
-                          </label>
-                          <select
-                            name="type"
-                            required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                            value={eventForm.type}
-                            onChange={handleInputChange}
-                          >
-                            {eventTypes.map(type => (
-                              <option key={type} value={type}>{type}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3">
-                            Date *
-                          </label>
-                          <input
-                            type="date"
-                            name="date"
-                            required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                            value={eventForm.date}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3">
-                            Time *
-                          </label>
-                          <input
-                            type="time"
-                            name="time"
-                            required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                            value={eventForm.time}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3">
-                            Location *
-                          </label>
-                          <input
-                            type="text"
-                            name="location"
-                            required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                            value={eventForm.location}
-                            onChange={handleInputChange}
-                            placeholder="Enter event location"
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3">
-                            Max Attendees *
-                          </label>
-                          <input
-                            type="number"
-                            name="maxAttendees"
-                            required
-                            min="1"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                            value={eventForm.maxAttendees}
-                            onChange={handleInputChange}
-                            placeholder="Enter maximum attendees"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-3">
-                          Description *
-                        </label>
-                        <textarea
-                          name="description"
-                          required
-                          rows="4"
-                          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                          value={eventForm.description}
-                          onChange={handleInputChange}
-                          placeholder="Describe your event..."
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3">
-                            Duration *
-                          </label>
-                          <input
-                            type="text"
-                            name="duration"
-                            required
-                            placeholder="e.g., 2 hours"
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                            value={eventForm.duration}
-                            onChange={handleInputChange}
-                          />
-                        </div>
-                        
-                        <div>
-                          <label className="block text-sm font-semibold text-gray-700 mb-3">
-                            Organizer *
-                          </label>
-                          <input
-                            type="text"
-                            name="organizer"
-                            required
-                            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                            value={eventForm.organizer}
-                            onChange={handleInputChange}
-                            placeholder="Event organizer"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
-                        <button
-                          type="button"
-                          onClick={() => setShowEventForm(false)}
-                          className="px-8 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-semibold"
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          type="submit"
-                          className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
-                        >
-                          {editingEvent ? 'Update Event' : 'Create Event'}
-                        </button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            )}
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard':
+        return (
+          <TabContentWrapper title="Admin Dashboard Overview" icon={Activity}>
+            <DashboardOverview onNavigate={setActiveTab} />
+          </TabContentWrapper>
+        );
+      case 'events':
+        return (
+          <TabContentWrapper title="Event Management Center" icon={Calendar}>
+            <EventsManagement />
+          </TabContentWrapper>
+        );
+      case 'users':
+        return (
+          <TabContentWrapper title="Users Management" icon={Users}>
+            <UsersManagement />
           </TabContentWrapper>
         );
       case 'messages':
         return (
           <TabContentWrapper title="Messages" icon={MessageSquare}>
             <MessagingPage embedded={true} />
+          </TabContentWrapper>
+        );
+      case 'analytics':
+        return (
+          <TabContentWrapper title="Analytics Dashboard" icon={BarChart3}>
+            <div className="text-center py-12">
+              <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 text-lg">Analytics dashboard coming soon...</p>
+            </div>
+          </TabContentWrapper>
+        );
+      case 'settings':
+        return (
+          <TabContentWrapper title="Settings" icon={Settings}>
+            <div className="text-center py-12">
+              <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 text-lg">Settings panel coming soon...</p>
+            </div>
           </TabContentWrapper>
         );
       default:
