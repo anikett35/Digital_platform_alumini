@@ -22,107 +22,74 @@ const userSchema = new mongoose.Schema({
   role: {
     type: String,
     enum: ['student', 'alumni', 'admin'],
-    default: 'student'
+    required: true
   },
   studentId: {
     type: String,
-    sparse: true // Allow multiple null values
-  },
-  graduationYear: {
-    type: Number,
-    required: function() {
-      return this.role === 'alumni';
-    }
+    sparse: true,
+    trim: true
   },
   department: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   phoneNumber: {
     type: String,
     trim: true
   },
-  profilePicture: {
+  // Student specific fields
+  currentYear: {
+    type: Number,
+    min: 1,
+    max: 8
+  },
+  enrollmentYear: {
+    type: Number
+  },
+  // Alumni specific fields
+  graduationYear: {
+    type: Number
+  },
+  currentCompany: {
     type: String,
-    default: ''
+    trim: true
+  },
+  currentPosition: {
+    type: String,
+    trim: true
+  },
+  // Profile fields
+  bio: {
+    type: String,
+    maxlength: 500
+  },
+  skills: [{
+    type: String,
+    trim: true
+  }],
+  interests: [{
+    type: String,
+    trim: true
+  }],
+  linkedinUrl: {
+    type: String,
+    trim: true
+  },
+  githubUrl: {
+    type: String,
+    trim: true
+  },
+  profileImage: {
+    type: String,
+    trim: true
   },
   isActive: {
     type: Boolean,
     default: true
   },
-  // Alumni specific fields
-  currentCompany: {
-    type: String,
-    required: function() {
-      return this.role === 'alumni';
-    }
-  },
-  currentPosition: {
-    type: String,
-    required: function() {
-      return this.role === 'alumni';
-    }
-  },
-  // Student specific fields
-  currentYear: {
-    type: Number,
-    required: function() {
-      return this.role === 'student';
-    }
-  },
-  enrollmentYear: {
-    type: Number,
-    required: function() {
-      return this.role === 'student';
-    }
-  },
-  // AI Matching Profile Fields
-  interests: [{
-    type: String,
-    trim: true,
-    lowercase: true
-  }],
-  skills: [{
-    type: String,
-    trim: true,
-    lowercase: true
-  }],
-  careerGoals: [{
-    type: String,
-    trim: true
-  }],
-  industryPreferences: [{
-    type: String,
-    trim: true,
-    lowercase: true
-  }],
-  lookingForMentor: {
-    type: Boolean,
-    default: false
-  },
-  availableAsMentor: {
-    type: Boolean,
-    default: false
-  },
-  mentorshipAreas: [{
-    type: String,
-    trim: true
-  }],
-  maxMentees: {
-    type: Number,
-    default: 3
-  },
-  bio: {
-    type: String,
-    maxlength: 1000
-  },
-  linkedIn: {
-    type: String,
-    trim: true
-  },
-  portfolio: {
-    type: String,
-    trim: true
+  lastLogin: {
+    type: Date
   }
 }, {
   timestamps: true
@@ -143,16 +110,16 @@ userSchema.pre('save', async function(next) {
   }
 });
 
-// Compare password method
+// Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-// Remove password from JSON output
+// Remove password from JSON response
 userSchema.methods.toJSON = function() {
-  const userObject = this.toObject();
-  delete userObject.password;
-  return userObject;
+  const user = this.toObject();
+  delete user.password;
+  return user;
 };
 
 module.exports = mongoose.model('User', userSchema);
