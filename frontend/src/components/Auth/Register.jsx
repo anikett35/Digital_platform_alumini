@@ -1,6 +1,7 @@
+// Register.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, GraduationCap, UserCog, Users, Phone, Building, Calendar, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, GraduationCap, Users, Phone, Building, Calendar, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 
@@ -8,17 +9,18 @@ const Register = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    mobileNumber: '',
     password: '',
     confirmPassword: '',
     role: 'student',
-    studentId: '',
-    graduationYear: '',
+    batchYear: '',
     department: '',
-    phoneNumber: '',
-    currentCompany: '',
-    currentPosition: '',
+    studentId: '',
     currentYear: '',
-    enrollmentYear: ''
+    enrollmentYear: '',
+    graduationYear: '',
+    currentCompany: '',
+    currentPosition: ''
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -33,8 +35,7 @@ const Register = () => {
 
   const roles = [
     { value: 'student', label: 'Student', icon: User, color: 'bg-blue-500' },
-    { value: 'alumni', label: 'Alumni', icon: GraduationCap, color: 'bg-green-500' },
-    { value: 'admin', label: 'Admin', icon: UserCog, color: 'bg-purple-500' }
+    { value: 'alumni', label: 'Alumni', icon: GraduationCap, color: 'bg-green-500' }
   ];
 
   const departments = [
@@ -49,6 +50,9 @@ const Register = () => {
     'Business Administration',
     'Other'
   ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
 
   // Initialize animations
   useEffect(() => {
@@ -105,39 +109,40 @@ const Register = () => {
       ...formData,
       role,
       studentId: '',
+      batchYear: '',
+      currentYear: '',
+      enrollmentYear: '',
       graduationYear: '',
       currentCompany: '',
-      currentPosition: '',
-      currentYear: '',
-      enrollmentYear: ''
+      currentPosition: ''
     });
     if (error) clearError();
   };
 
   const validateForm = () => {
     if (!formData.name || !formData.email || !formData.department) {
-      alert('Please fill in all required fields');
+      toast.error('Please fill in all required fields');
       return false;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
+      toast.error('Passwords do not match!');
       return false;
     }
 
     if (formData.password.length < 6) {
-      alert('Password must be at least 6 characters long!');
+      toast.error('Password must be at least 6 characters long!');
       return false;
     }
 
     if (formData.role === 'student') {
-      if (!formData.studentId || !formData.currentYear || !formData.enrollmentYear) {
-        alert('Please fill all student-specific fields!');
+      if (!formData.currentYear || !formData.enrollmentYear) {
+        toast.error('Please fill all student-specific fields!');
         return false;
       }
     } else if (formData.role === 'alumni') {
-      if (!formData.studentId || !formData.graduationYear || !formData.currentCompany || !formData.currentPosition) {
-        alert('Please fill all alumni-specific fields!');
+      if (!formData.graduationYear) {
+        toast.error('Please fill all alumni-specific fields!');
         return false;
       }
     }
@@ -164,21 +169,23 @@ const Register = () => {
     const dataToSend = {
       name: formData.name,
       email: formData.email,
+      mobileNumber: formData.mobileNumber,
       password: formData.password,
       role: formData.role,
-      department: formData.department,
-      phoneNumber: formData.phoneNumber || ''
+      department: formData.department
     };
 
     if (formData.role === 'student') {
       dataToSend.studentId = formData.studentId;
       dataToSend.currentYear = parseInt(formData.currentYear);
       dataToSend.enrollmentYear = parseInt(formData.enrollmentYear);
+      dataToSend.batchYear = parseInt(formData.batchYear);
     } else if (formData.role === 'alumni') {
       dataToSend.studentId = formData.studentId;
       dataToSend.graduationYear = parseInt(formData.graduationYear);
       dataToSend.currentCompany = formData.currentCompany;
       dataToSend.currentPosition = formData.currentPosition;
+      dataToSend.batchYear = parseInt(formData.batchYear);
     }
 
     console.log('Sending registration data:', dataToSend);
@@ -209,7 +216,7 @@ const Register = () => {
         <>
           <div className="animate-slide-in-left">
             <label className="block text-white/90 text-sm font-medium mb-2">
-              Student ID *
+              Student ID
             </label>
             <input
               type="text"
@@ -218,12 +225,11 @@ const Register = () => {
               onChange={handleInputChange}
               className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
               placeholder="Enter your student ID"
-              required
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4 animate-slide-in-right">
-            <div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="animate-slide-in-left">
               <label className="block text-white/90 text-sm font-medium mb-2">
                 Current Year *
               </label>
@@ -243,21 +249,24 @@ const Register = () => {
               </select>
             </div>
 
-            <div>
+            <div className="animate-slide-in-right">
               <label className="block text-white/90 text-sm font-medium mb-2">
                 Enrollment Year *
               </label>
-              <input
-                type="number"
+              <select
                 name="enrollmentYear"
                 value={formData.enrollmentYear}
                 onChange={handleInputChange}
-                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
-                placeholder="2020"
-                min="2000"
-                max="2030"
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
                 required
-              />
+              >
+                <option value="">Select Year</option>
+                {years.map(year => (
+                  <option key={year} value={year} className="bg-gray-800">
+                    {year}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         </>
@@ -267,7 +276,7 @@ const Register = () => {
         <>
           <div className="animate-slide-in-left">
             <label className="block text-white/90 text-sm font-medium mb-2">
-              Student ID *
+              Student ID
             </label>
             <input
               type="text"
@@ -276,7 +285,6 @@ const Register = () => {
               onChange={handleInputChange}
               className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
               placeholder="Enter your student ID"
-              required
             />
           </div>
 
@@ -284,50 +292,53 @@ const Register = () => {
             <label className="block text-white/90 text-sm font-medium mb-2">
               Graduation Year *
             </label>
-            <input
-              type="number"
+            <select
               name="graduationYear"
               value={formData.graduationYear}
               onChange={handleInputChange}
-              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
-              placeholder="2020"
-              min="1950"
-              max="2030"
+              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
               required
-            />
+            >
+              <option value="">Select Year</option>
+              {years.map(year => (
+                <option key={year} value={year} className="bg-gray-800">
+                  {year}
+                </option>
+              ))}
+            </select>
           </div>
 
-          <div className="animate-slide-in-left">
-            <label className="block text-white/90 text-sm font-medium mb-2">
-              Current Company *
-            </label>
-            <div className="relative">
-              <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="animate-slide-in-left">
+              <label className="block text-white/90 text-sm font-medium mb-2">
+                Current Company
+              </label>
+              <div className="relative">
+                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                <input
+                  type="text"
+                  name="currentCompany"
+                  value={formData.currentCompany}
+                  onChange={handleInputChange}
+                  className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                  placeholder="Enter your current company"
+                />
+              </div>
+            </div>
+
+            <div className="animate-slide-in-right">
+              <label className="block text-white/90 text-sm font-medium mb-2">
+                Current Position
+              </label>
               <input
                 type="text"
-                name="currentCompany"
-                value={formData.currentCompany}
+                name="currentPosition"
+                value={formData.currentPosition}
                 onChange={handleInputChange}
-                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
-                placeholder="Enter your current company"
-                required
+                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                placeholder="Enter your current position"
               />
             </div>
-          </div>
-
-          <div className="animate-slide-in-right">
-            <label className="block text-white/90 text-sm font-medium mb-2">
-              Current Position *
-            </label>
-            <input
-              type="text"
-              name="currentPosition"
-              value={formData.currentPosition}
-              onChange={handleInputChange}
-              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
-              placeholder="Enter your current position"
-              required
-            />
           </div>
         </>
       );
@@ -383,9 +394,18 @@ const Register = () => {
               </div>
             </div>
             <h2 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-2 animate-fade-in">
-              Join Our Community
+              Create Your Account
             </h2>
-            <p className="text-gray-400 animate-fade-in-delay">Create your account to get started</p>
+            <p className="text-gray-400 animate-fade-in-delay">
+              Join the network to connect with fellow alumni and students
+            </p>
+          </div>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-600/50"></div>
+            </div>
           </div>
 
           {/* Error Message */}
@@ -401,9 +421,9 @@ const Register = () => {
             {/* Role Selection */}
             <div className="animate-fade-in">
               <label className="block text-white/90 text-sm font-medium mb-3">
-                Select Role *
+                I am a... *
               </label>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {roles.map((role) => {
                   const IconComponent = role.icon;
                   return (
@@ -428,11 +448,9 @@ const Register = () => {
             </div>
 
             {/* Basic Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
+              <h3 className="text-white text-lg font-semibold animate-slide-in-left">Full Name</h3>
               <div className="animate-slide-in-left">
-                <label className="block text-white/90 text-sm font-medium mb-2">
-                  Full Name *
-                </label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
                   <input
@@ -447,21 +465,36 @@ const Register = () => {
                 </div>
               </div>
 
-              <div className="animate-slide-in-right">
-                <label className="block text-white/90 text-sm font-medium mb-2">
-                  Email Address *
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
-                    placeholder="Enter your email"
-                    required
-                  />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="animate-slide-in-left">
+                  <h3 className="text-white text-lg font-semibold mb-2">Email Address</h3>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="animate-slide-in-right">
+                  <h3 className="text-white text-lg font-semibold mb-2">Mobile Number</h3>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                    <input
+                      type="tel"
+                      name="mobileNumber"
+                      value={formData.mobileNumber}
+                      onChange={handleInputChange}
+                      className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                      placeholder="Enter your mobile number"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -469,9 +502,7 @@ const Register = () => {
             {/* Password Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="animate-slide-in-left">
-                <label className="block text-white/90 text-sm font-medium mb-2">
-                  Password *
-                </label>
+                <h3 className="text-white text-lg font-semibold mb-2">Create Password</h3>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
                   <input
@@ -480,7 +511,7 @@ const Register = () => {
                     value={formData.password}
                     onChange={handleInputChange}
                     className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
-                    placeholder="Create password"
+                    placeholder="Enter a strong password"
                     required
                   />
                   <button
@@ -494,9 +525,7 @@ const Register = () => {
               </div>
 
               <div className="animate-slide-in-right">
-                <label className="block text-white/90 text-sm font-medium mb-2">
-                  Confirm Password *
-                </label>
+                <h3 className="text-white text-lg font-semibold mb-2">Confirm Password</h3>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
                   <input
@@ -505,7 +534,7 @@ const Register = () => {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
-                    placeholder="Confirm password"
+                    placeholder="Confirm your password"
                     required
                   />
                   <button
@@ -519,12 +548,10 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Department and Phone */}
+            {/* Department and Batch Year */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="animate-slide-in-left">
-                <label className="block text-white/90 text-sm font-medium mb-2">
-                  Department *
-                </label>
+                <h3 className="text-white text-lg font-semibold mb-2">Department</h3>
                 <select
                   name="department"
                   value={formData.department}
@@ -542,19 +569,22 @@ const Register = () => {
               </div>
 
               <div className="animate-slide-in-right">
-                <label className="block text-white/90 text-sm font-medium mb-2">
-                  Phone Number
-                </label>
+                <h3 className="text-white text-lg font-semibold mb-2">Batch Year</h3>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
-                  <input
-                    type="tel"
-                    name="phoneNumber"
-                    value={formData.phoneNumber}
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                  <select
+                    name="batchYear"
+                    value={formData.batchYear}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
-                    placeholder="Enter phone number"
-                  />
+                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                  >
+                    <option value="">Select Year</option>
+                    {years.map(year => (
+                      <option key={year} value={year} className="bg-gray-800">
+                        {year}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </div>
@@ -580,7 +610,7 @@ const Register = () => {
                 ) : (
                   <>
                     <User className="w-5 h-5" />
-                    <span>Create Account</span>
+                    <span>Register</span>
                   </>
                 )}
               </button>
@@ -595,7 +625,7 @@ const Register = () => {
                 to="/login"
                 className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors hover:underline"
               >
-                Sign in here
+                Login
               </Link>
             </div>
           </div>

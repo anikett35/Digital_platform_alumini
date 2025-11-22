@@ -220,15 +220,7 @@ const UsersManagement = () => {
         </div>
       </div>
 
-      {/* Debug Info (Remove in production) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm">
-          <p className="font-semibold text-yellow-800">Debug Info:</p>
-          <p className="text-yellow-700">Total Users in DB: {stats.total}</p>
-          <p className="text-yellow-700">Alumni: {stats.alumni} | Students: {stats.students} | Active: {stats.active}</p>
-          <p className="text-yellow-700">Displayed (after filters): {displayedUsers.length}</p>
-        </div>
-      )}
+    
 
       {/* Tabs */}
       <div className="flex space-x-4 mb-6 border-b border-gray-200">
