@@ -6,7 +6,9 @@ const {
   getProfile,
   updateProfile,
   changePassword,
-  getAllUsers
+  getAllUsers,
+  toggleUserStatus,
+  deleteUser
 } = require('../controllers/authController');
 const { auth, adminOnly } = require('../middleware/auth');
 
@@ -81,6 +83,8 @@ router.post('/change-password', auth, changePasswordValidation, changePassword);
 
 // Admin only routes
 router.get('/users', auth, adminOnly, getAllUsers);
+router.put('/users/:userId/toggle-status', auth, adminOnly, toggleUserStatus);
+router.delete('/users/:userId', auth, adminOnly, deleteUser);
 
 // Test route to verify authentication
 router.get('/test', auth, (req, res) => {

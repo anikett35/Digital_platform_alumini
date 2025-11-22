@@ -220,7 +220,7 @@ const changePassword = async (req, res) => {
 // Get all users (Admin only)
 const getAllUsers = async (req, res) => {
   try {
-    const { role, department, page = 1, limit = 10 } = req.query;
+    const { role, department, page = 1, limit = 100 } = req.query;
     
     const query = {};
     if (role) query.role = role;
@@ -237,12 +237,69 @@ const getAllUsers = async (req, res) => {
     res.json({
       users,
       totalPages: Math.ceil(total / limit),
-      currentPage: page,
+      currentPage: parseInt(page),
       total
     });
 
   } catch (error) {
     console.error('Get all users error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Toggle user status (Admin only)
+const toggleUserStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent deactivating yourself
+    if (userId === req.user.id) {
+      return res.status(400).json({ message: 'Cannot deactivate your own account' });
+    }
+
+    user.isActive = !user.isActive;
+    await user.save();
+
+    res.json({
+      message: `User ${user.isActive ? 'activated' : 'deactivated'} successfully`,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        isActive: user.isActive
+      }
+    });
+
+  } catch (error) {
+    console.error('Toggle user status error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Delete user (Admin only)
+const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Prevent deleting yourself
+    if (userId === req.user.id) {
+      return res.status(400).json({ message: 'Cannot delete your own account' });
+    }
+
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.json({ message: 'User deleted successfully' });
+
+  } catch (error) {
+    console.error('Delete user error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -253,5 +310,7 @@ module.exports = {
   getProfile,
   updateProfile,
   changePassword,
-  getAllUsers
+  getAllUsers,
+  toggleUserStatus,
+  deleteUser
 };
