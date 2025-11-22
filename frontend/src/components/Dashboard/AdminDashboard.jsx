@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Settings, 
-  Users, 
-  Calendar, 
+import React, { useState, useEffect } from "react";
+import {
+  Settings,
+  Users,
+  Calendar,
   BarChart3,
   Bell,
   Search,
@@ -21,20 +21,21 @@ import {
   Clock,
   Activity,
   UserPlus,
-  CalendarPlus
-} from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import Chatbot from '../Common/Chatbot';
-import MessagingPage from '../Messaging/MessagingPage';
-import UsersManagement from './UsersManagement';
-import axios from 'axios';
+  CalendarPlus,
+} from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import Chatbot from "../Common/Chatbot";
+import MessagingPage from "../Messaging/MessagingPage";
+import UsersManagement from "./UsersManagement";
+import AnalyticsDashboard from "./AnalyticsDashboard";
+import axios from "axios";
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = "http://localhost:5000/api";
 
 // --- CONFIGURATION ---
-const PRIMARY_TW_COLOR = 'purple';
-const ACCENT_TW_COLOR = 'indigo';
-const HEADER_GRADIENT = 'from-purple-600 to-indigo-600';
+const PRIMARY_TW_COLOR = "purple";
+const ACCENT_TW_COLOR = "indigo";
+const HEADER_GRADIENT = "from-purple-600 to-indigo-600";
 
 // Admin Navbar Component
 const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
@@ -43,17 +44,17 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const adminTabs = [
-    { id: 'dashboard', name: 'Dashboard', icon: Activity },
-    { id: 'events', name: 'Events', icon: Calendar },
-    { id: 'users', name: 'Users', icon: Users },
-    { id: 'messages', name: 'Messages', icon: MessageSquare },
-    { id: 'analytics', name: 'Analytics', icon: BarChart3 },
-    { id: 'settings', name: 'Settings', icon: Settings }
+    { id: "dashboard", name: "Dashboard", icon: Activity },
+    { id: "events", name: "Events", icon: Calendar },
+    { id: "users", name: "Users", icon: Users },
+    { id: "messages", name: "Messages", icon: MessageSquare },
+    { id: "analytics", name: "Analytics", icon: BarChart3 },
+    { id: "settings", name: "Settings", icon: Settings },
   ];
 
   const handleTabClick = (tabId) => {
@@ -62,23 +63,35 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   };
 
   return (
-    <nav className={`sticky top-0 z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-200' : 'bg-white shadow-md'
-    }`}>
+    <nav
+      className={`sticky top-0 z-50 transition-all duration-300 ${
+        isScrolled
+          ? "bg-white/95 backdrop-blur-xl shadow-lg border-b border-gray-200"
+          : "bg-white shadow-md"
+      }`}
+    >
       <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
           <div className="flex items-center space-x-3 group cursor-pointer">
             <div className="relative">
-              <div className={`absolute inset-0 bg-gradient-to-br ${HEADER_GRADIENT} rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity`}></div>
-              <div className={`relative w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${HEADER_GRADIENT} rounded-xl flex items-center justify-center transform group-hover:scale-105 transition-transform`}>
+              <div
+                className={`absolute inset-0 bg-gradient-to-br ${HEADER_GRADIENT} rounded-xl blur-sm opacity-75 group-hover:opacity-100 transition-opacity`}
+              ></div>
+              <div
+                className={`relative w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${HEADER_GRADIENT} rounded-xl flex items-center justify-center transform group-hover:scale-105 transition-transform`}
+              >
                 <Shield className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
               </div>
             </div>
             <div className="hidden sm:block">
-              <h1 className={`text-lg lg:text-xl font-bold bg-gradient-to-r ${HEADER_GRADIENT} bg-clip-text text-transparent`}>
+              <h1
+                className={`text-lg lg:text-xl font-bold bg-gradient-to-r ${HEADER_GRADIENT} bg-clip-text text-transparent`}
+              >
                 AdminPortal
               </h1>
-              <p className="text-xs text-gray-500">Welcome, {user?.name?.split(' ')[0]}</p>
+              <p className="text-xs text-gray-500">
+                Welcome, {user?.name?.split(" ")[0]}
+              </p>
             </div>
           </div>
 
@@ -86,7 +99,7 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
             {adminTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              
+
               return (
                 <button
                   key={tab.id}
@@ -94,10 +107,14 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
                   className={`relative flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm ${
                     isActive
                       ? `text-${PRIMARY_TW_COLOR}-700 shadow-md bg-white ring-2 ring-${PRIMARY_TW_COLOR}-100`
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                      : "text-gray-600 hover:text-gray-900 hover:bg-white/50"
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? `text-${PRIMARY_TW_COLOR}-600` : ''}`} />
+                  <Icon
+                    className={`w-4 h-4 ${
+                      isActive ? `text-${PRIMARY_TW_COLOR}-600` : ""
+                    }`}
+                  />
                   <span>{tab.name}</span>
                 </button>
               );
@@ -114,20 +131,28 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
               />
             </div>
 
-            <button className={`relative p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200 group border border-transparent hover:border-gray-200`}>
-              <Bell className={`w-5 h-5 text-gray-600 group-hover:text-${PRIMARY_TW_COLOR}-600 transition-colors`} />
+            <button
+              className={`relative p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200 group border border-transparent hover:border-gray-200`}
+            >
+              <Bell
+                className={`w-5 h-5 text-gray-600 group-hover:text-${PRIMARY_TW_COLOR}-600 transition-colors`}
+              />
               <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
             </button>
 
             <div className="flex items-center space-x-3">
               <div className="hidden md:flex items-center space-x-3 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl px-4 py-2 border border-purple-100">
-                <div className={`w-8 h-8 lg:w-9 lg:h-9 bg-gradient-to-br from-${PRIMARY_TW_COLOR}-600 to-${ACCENT_TW_COLOR}-500 rounded-full flex items-center justify-center shadow-md`}>
+                <div
+                  className={`w-8 h-8 lg:w-9 lg:h-9 bg-gradient-to-br from-${PRIMARY_TW_COLOR}-600 to-${ACCENT_TW_COLOR}-500 rounded-full flex items-center justify-center shadow-md`}
+                >
                   <span className="text-white text-sm font-semibold">
-                    {user?.name?.charAt(0) || 'A'}
+                    {user?.name?.charAt(0) || "A"}
                   </span>
                 </div>
                 <div className="hidden lg:block text-sm">
-                  <p className="font-semibold text-gray-800 leading-tight">{user?.name}</p>
+                  <p className="font-semibold text-gray-800 leading-tight">
+                    {user?.name}
+                  </p>
                   <p className="text-xs text-gray-500">Administrator</p>
                 </div>
               </div>
@@ -145,7 +170,11 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="lg:hidden p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200 border border-transparent hover:border-gray-200"
             >
-              {isMobileMenuOpen ? <X className="w-5 h-5 text-gray-700" /> : <Menu className="w-5 h-5 text-gray-700" />}
+              {isMobileMenuOpen ? (
+                <X className="w-5 h-5 text-gray-700" />
+              ) : (
+                <Menu className="w-5 h-5 text-gray-700" />
+              )}
             </button>
           </div>
         </div>
@@ -156,7 +185,7 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
               {adminTabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
-                
+
                 return (
                   <button
                     key={tab.id}
@@ -164,16 +193,18 @@ const AdminNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
                     className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
                       isActive
                         ? `bg-gradient-to-r from-${PRIMARY_TW_COLOR}-50 to-${ACCENT_TW_COLOR}-50 text-${PRIMARY_TW_COLOR}-700 border border-${PRIMARY_TW_COLOR}-200 shadow-sm`
-                        : 'text-gray-600 hover:bg-gray-50'
+                        : "text-gray-600 hover:bg-gray-50"
                     }`}
                   >
                     <Icon className="w-5 h-5" />
                     <span className="font-medium">{tab.name}</span>
-                    {isActive && <ArrowRight className="w-4 h-4 ml-auto text-purple-600" />}
+                    {isActive && (
+                      <ArrowRight className="w-4 h-4 ml-auto text-purple-600" />
+                    )}
                   </button>
                 );
               })}
-              
+
               <button
                 onClick={onLogout}
                 className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-all duration-200 border-t border-gray-200 mt-2 pt-4"
@@ -195,9 +226,7 @@ const TabContentWrapper = ({ title, children, icon: Icon }) => (
       {Icon && <Icon className={`w-7 h-7 text-${PRIMARY_TW_COLOR}-600`} />}
       <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
     </div>
-    <div className="space-y-6">
-      {children}
-    </div>
+    <div className="space-y-6">{children}</div>
   </div>
 );
 
@@ -207,7 +236,7 @@ const DashboardOverview = ({ onNavigate }) => {
     totalEvents: 0,
     totalUsers: 0,
     totalAlumni: 0,
-    totalStudents: 0
+    totalStudents: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -217,28 +246,28 @@ const DashboardOverview = ({ onNavigate }) => {
 
   const fetchDashboardStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       // Fetch events stats
       const eventsResponse = await axios.get(`${API_URL}/events/stats`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       // Fetch users
       const usersResponse = await axios.get(`${API_URL}/auth/users`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       const users = usersResponse.data.users || [];
-      
+
       setStats({
         totalEvents: eventsResponse.data.stats.totalEvents,
         totalUsers: users.length,
-        totalAlumni: users.filter(u => u.role === 'alumni').length,
-        totalStudents: users.filter(u => u.role === 'student').length
+        totalAlumni: users.filter((u) => u.role === "alumni").length,
+        totalStudents: users.filter((u) => u.role === "student").length,
       });
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      console.error("Error fetching dashboard stats:", error);
     } finally {
       setLoading(false);
     }
@@ -246,33 +275,33 @@ const DashboardOverview = ({ onNavigate }) => {
 
   const quickActions = [
     {
-      title: 'Create Event',
-      description: 'Add a new event to the platform',
+      title: "Create Event",
+      description: "Add a new event to the platform",
       icon: CalendarPlus,
-      gradient: 'from-purple-500 to-indigo-600',
-      action: () => onNavigate('events')
+      gradient: "from-purple-500 to-indigo-600",
+      action: () => onNavigate("events"),
     },
     {
-      title: 'Manage Users',
-      description: 'View and manage all users',
+      title: "Manage Users",
+      description: "View and manage all users",
       icon: UserPlus,
-      gradient: 'from-blue-500 to-blue-600',
-      action: () => onNavigate('users')
+      gradient: "from-blue-500 to-blue-600",
+      action: () => onNavigate("users"),
     },
     {
-      title: 'View Analytics',
-      description: 'Check platform statistics',
+      title: "View Analytics",
+      description: "Check platform statistics",
       icon: BarChart3,
-      gradient: 'from-green-500 to-emerald-600',
-      action: () => onNavigate('analytics')
+      gradient: "from-green-500 to-emerald-600",
+      action: () => onNavigate("analytics"),
     },
     {
-      title: 'Messages',
-      description: 'Manage communications',
+      title: "Messages",
+      description: "Manage communications",
       icon: MessageSquare,
-      gradient: 'from-orange-500 to-red-500',
-      action: () => onNavigate('messages')
-    }
+      gradient: "from-orange-500 to-red-500",
+      action: () => onNavigate("messages"),
+    },
   ];
 
   return (
@@ -282,8 +311,12 @@ const DashboardOverview = ({ onNavigate }) => {
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl"></div>
         <div className="relative z-10">
-          <h1 className="text-3xl lg:text-4xl font-bold mb-3">Welcome to Admin Portal! 👋</h1>
-          <p className="text-blue-100 text-lg">Manage your platform efficiently from one place</p>
+          <h1 className="text-3xl lg:text-4xl font-bold mb-3">
+            Welcome to Admin Portal! 👋
+          </h1>
+          <p className="text-blue-100 text-lg">
+            Manage your platform efficiently from one place
+          </p>
         </div>
       </div>
 
@@ -293,7 +326,9 @@ const DashboardOverview = ({ onNavigate }) => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold mb-2">Total Events</h3>
-              <p className="text-4xl font-bold">{loading ? '...' : stats.totalEvents}</p>
+              <p className="text-4xl font-bold">
+                {loading ? "..." : stats.totalEvents}
+              </p>
               <p className="text-white/80 text-sm mt-2">Platform events</p>
             </div>
             <Calendar className="w-12 h-12 opacity-80" />
@@ -304,7 +339,9 @@ const DashboardOverview = ({ onNavigate }) => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold mb-2">Total Users</h3>
-              <p className="text-4xl font-bold">{loading ? '...' : stats.totalUsers}</p>
+              <p className="text-4xl font-bold">
+                {loading ? "..." : stats.totalUsers}
+              </p>
               <p className="text-white/80 text-sm mt-2">Registered users</p>
             </div>
             <Users className="w-12 h-12 opacity-80" />
@@ -315,7 +352,9 @@ const DashboardOverview = ({ onNavigate }) => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold mb-2">Alumni</h3>
-              <p className="text-4xl font-bold">{loading ? '...' : stats.totalAlumni}</p>
+              <p className="text-4xl font-bold">
+                {loading ? "..." : stats.totalAlumni}
+              </p>
               <p className="text-white/80 text-sm mt-2">Active alumni</p>
             </div>
             <TrendingUp className="w-12 h-12 opacity-80" />
@@ -326,7 +365,9 @@ const DashboardOverview = ({ onNavigate }) => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-semibold mb-2">Students</h3>
-              <p className="text-4xl font-bold">{loading ? '...' : stats.totalStudents}</p>
+              <p className="text-4xl font-bold">
+                {loading ? "..." : stats.totalStudents}
+              </p>
               <p className="text-white/80 text-sm mt-2">Current students</p>
             </div>
             <Users className="w-12 h-12 opacity-80" />
@@ -358,7 +399,9 @@ const DashboardOverview = ({ onNavigate }) => {
 
       {/* Recent Activity */}
       <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Recent Activity</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          Recent Activity
+        </h2>
         <div className="space-y-4">
           <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
             <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
@@ -399,63 +442,71 @@ const EventsManagement = () => {
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
   const [eventForm, setEventForm] = useState({
-    title: '',
-    date: '',
-    time: '',
-    type: 'Workshop',
-    maxAttendees: '',
-    description: '',
-    location: '',
-    duration: '',
-    organizer: ''
+    title: "",
+    date: "",
+    time: "",
+    type: "Workshop",
+    maxAttendees: "",
+    description: "",
+    location: "",
+    duration: "",
+    organizer: "",
   });
   const [filters, setFilters] = useState({
-    type: 'all',
-    status: 'all'
+    type: "all",
+    status: "all",
   });
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [eventStats, setEventStats] = useState([
     {
-      id: 'total',
-      name: 'Total Events',
-      value: '0',
-      change: 'Loading...',
-      trend: 'up',
+      id: "total",
+      name: "Total Events",
+      value: "0",
+      change: "Loading...",
+      trend: "up",
       icon: Calendar,
-      gradient: 'from-purple-400 to-purple-600'
+      gradient: "from-purple-400 to-purple-600",
     },
     {
-      id: 'upcoming',
-      name: 'Upcoming Events',
-      value: '0',
-      change: 'Loading...',
-      trend: 'up',
+      id: "upcoming",
+      name: "Upcoming Events",
+      value: "0",
+      change: "Loading...",
+      trend: "up",
       icon: TrendingUp,
-      gradient: 'from-blue-400 to-blue-600'
+      gradient: "from-blue-400 to-blue-600",
     },
     {
-      id: 'attendees',
-      name: 'Total Attendees',
-      value: '0',
-      change: 'Loading...',
-      trend: 'up',
+      id: "attendees",
+      name: "Total Attendees",
+      value: "0",
+      change: "Loading...",
+      trend: "up",
       icon: Users,
-      gradient: 'from-green-400 to-green-600'
+      gradient: "from-green-400 to-green-600",
     },
     {
-      id: 'capacity',
-      name: 'Avg. Capacity',
-      value: '0%',
-      change: 'Loading...',
-      trend: 'up',
+      id: "capacity",
+      name: "Avg. Capacity",
+      value: "0%",
+      change: "Loading...",
+      trend: "up",
       icon: BarChart3,
-      gradient: 'from-orange-400 to-orange-600'
-    }
+      gradient: "from-orange-400 to-orange-600",
+    },
   ]);
 
-  const eventTypes = ['Workshop', 'Networking', 'Seminar', 'Conference', 'Webinar', 'Social', 'Career Fair'];
-  
+  const eventTypes = [
+    "Workshop",
+    "Networking",
+    "Seminar",
+    "Conference",
+    "Webinar",
+    "Social",
+    "Career Fair",
+  ];
+
   useEffect(() => {
     fetchEvents();
     fetchEventStats();
@@ -464,25 +515,25 @@ const EventsManagement = () => {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const params = new URLSearchParams();
-      
-      if (filters.type !== 'all') params.append('type', filters.type);
-      if (filters.status !== 'all') params.append('status', filters.status);
-      if (searchTerm) params.append('search', searchTerm);
-      
+
+      if (filters.type !== "all") params.append("type", filters.type);
+      if (filters.status !== "all") params.append("status", filters.status);
+      if (searchTerm) params.append("search", searchTerm);
+
       const response = await axios.get(
         `${API_URL}/events?${params.toString()}`,
         {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      
-      console.log('Fetched events:', response.data);
+
+      console.log("Fetched events:", response.data);
       setEvents(response.data.events || []);
     } catch (error) {
-      console.error('Error fetching events:', error);
-      alert(error.response?.data?.message || 'Failed to load events');
+      console.error("Error fetching events:", error);
+      alert(error.response?.data?.message || "Failed to load events");
     } finally {
       setLoading(false);
     }
@@ -490,87 +541,84 @@ const EventsManagement = () => {
 
   const fetchEventStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${API_URL}/events/stats`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${API_URL}/events/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       const stats = response.data.stats;
-      console.log('Fetched stats:', stats);
-      
+      console.log("Fetched stats:", stats);
+
       setEventStats([
         {
-          id: 'total',
-          name: 'Total Events',
+          id: "total",
+          name: "Total Events",
           value: stats.totalEvents.toString(),
           change: `+${stats.totalEvents} total`,
-          trend: 'up',
+          trend: "up",
           icon: Calendar,
-          gradient: 'from-purple-400 to-purple-600'
+          gradient: "from-purple-400 to-purple-600",
         },
         {
-          id: 'upcoming',
-          name: 'Upcoming Events',
+          id: "upcoming",
+          name: "Upcoming Events",
           value: stats.upcomingEvents.toString(),
           change: `${stats.upcomingEvents} scheduled`,
-          trend: 'up',
+          trend: "up",
           icon: TrendingUp,
-          gradient: 'from-blue-400 to-blue-600'
+          gradient: "from-blue-400 to-blue-600",
         },
         {
-          id: 'attendees',
-          name: 'Total Attendees',
+          id: "attendees",
+          name: "Total Attendees",
           value: stats.totalAttendees.toString(),
-          change: 'Across all events',
-          trend: 'up',
+          change: "Across all events",
+          trend: "up",
           icon: Users,
-          gradient: 'from-green-400 to-green-600'
+          gradient: "from-green-400 to-green-600",
         },
         {
-          id: 'capacity',
-          name: 'Avg. Capacity',
+          id: "capacity",
+          name: "Avg. Capacity",
           value: stats.avgCapacity,
-          change: 'Average filled',
-          trend: 'up',
+          change: "Average filled",
+          trend: "up",
           icon: BarChart3,
-          gradient: 'from-orange-400 to-orange-600'
-        }
+          gradient: "from-orange-400 to-orange-600",
+        },
       ]);
     } catch (error) {
-      console.error('Error fetching event stats:', error);
+      console.error("Error fetching event stats:", error);
     }
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setEventForm(prev => ({
+    setEventForm((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleCreateEvent = () => {
     setEventForm({
-      title: '',
-      date: '',
-      time: '',
-      type: 'Workshop',
-      maxAttendees: '',
-      description: '',
-      location: '',
-      duration: '',
-      organizer: ''
+      title: "",
+      date: "",
+      time: "",
+      type: "Workshop",
+      maxAttendees: "",
+      description: "",
+      location: "",
+      duration: "",
+      organizer: "",
     });
     setEditingEvent(null);
     setShowEventForm(true);
   };
 
   const handleEditEvent = (event) => {
-    const formattedDate = new Date(event.date).toISOString().split('T')[0];
-    
+    const formattedDate = new Date(event.date).toISOString().split("T")[0];
+
     setEventForm({
       title: event.title,
       date: formattedDate,
@@ -580,99 +628,93 @@ const EventsManagement = () => {
       description: event.description,
       location: event.location,
       duration: event.duration,
-      organizer: event.organizer
+      organizer: event.organizer,
     });
     setEditingEvent(event._id);
     setShowEventForm(true);
   };
 
   const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm('Are you sure you want to delete this event?')) {
+    if (!window.confirm("Are you sure you want to delete this event?")) {
       return;
     }
-    
+
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
-        `${API_URL}/events/${eventId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
-      
+      const token = localStorage.getItem("token");
+      await axios.delete(`${API_URL}/events/${eventId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       fetchEvents();
       fetchEventStats();
-      alert('Event deleted successfully!');
+      alert("Event deleted successfully!");
     } catch (error) {
-      console.error('Error deleting event:', error);
-      alert(error.response?.data?.message || 'Failed to delete event');
+      console.error("Error deleting event:", error);
+      alert(error.response?.data?.message || "Failed to delete event");
     }
   };
 
   const handleSubmitEvent = async (e) => {
     e.preventDefault();
-    
+
     try {
-      const token = localStorage.getItem('token');
-      
+      const token = localStorage.getItem("token");
+
       const eventData = {
         ...eventForm,
-        maxAttendees: parseInt(eventForm.maxAttendees)
+        maxAttendees: parseInt(eventForm.maxAttendees),
       };
-      
-      console.log('Submitting event data:', eventData);
-      
+
+      console.log("Submitting event data:", eventData);
+
       if (editingEvent) {
-        await axios.put(
-          `${API_URL}/events/${editingEvent}`,
-          eventData,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
-        alert('Event updated successfully!');
+        await axios.put(`${API_URL}/events/${editingEvent}`, eventData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        alert("Event updated successfully!");
       } else {
-        await axios.post(
-          `${API_URL}/events`,
-          eventData,
-          {
-            headers: { Authorization: `Bearer ${token}` }
-          }
-        );
-        alert('Event created successfully!');
+        await axios.post(`${API_URL}/events`, eventData, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        alert("Event created successfully!");
       }
-      
+
       setShowEventForm(false);
       setEditingEvent(null);
       fetchEvents();
       fetchEventStats();
     } catch (error) {
-      console.error('Error saving event:', error);
-      console.error('Error response:', error.response?.data);
-      alert(error.response?.data?.message || 'Failed to save event. Please check all required fields.');
+      console.error("Error saving event:", error);
+      console.error("Error response:", error.response?.data);
+      alert(
+        error.response?.data?.message ||
+          "Failed to save event. Please check all required fields."
+      );
     }
   };
 
   const getCurrentAttendees = (event) => {
     if (!event.attendees) return 0;
-    return event.attendees.filter(a => a.status === 'registered').length;
+    return event.attendees.filter((a) => a.status === "registered").length;
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      weekday: "long",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
     });
   };
 
-  const filteredEvents = events.filter(event => {
-    const matchesType = filters.type === 'all' || event.type === filters.type;
-    const matchesStatus = filters.status === 'all' || event.status === filters.status;
-    const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchTerm.toLowerCase());
-    
+  const filteredEvents = events.filter((event) => {
+    const matchesType = filters.type === "all" || event.type === filters.type;
+    const matchesStatus =
+      filters.status === "all" || event.status === filters.status;
+    const matchesSearch =
+      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      event.description.toLowerCase().includes(searchTerm.toLowerCase());
+
     return matchesType && matchesStatus && matchesSearch;
   });
 
@@ -683,7 +725,10 @@ const EventsManagement = () => {
         {eventStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className={`bg-gradient-to-r ${stat.gradient} rounded-xl p-6 text-white shadow-lg transform hover:scale-[1.02] transition-transform duration-200`}>
+            <div
+              key={index}
+              className={`bg-gradient-to-r ${stat.gradient} rounded-xl p-6 text-white shadow-lg transform hover:scale-[1.02] transition-transform duration-200`}
+            >
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold mb-2">{stat.name}</h3>
@@ -711,23 +756,29 @@ const EventsManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="flex gap-3">
               <select
                 className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 value={filters.type}
-                onChange={(e) => setFilters(prev => ({ ...prev, type: e.target.value }))}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, type: e.target.value }))
+                }
               >
                 <option value="all">All Types</option>
-                {eventTypes.map(type => (
-                  <option key={type} value={type}>{type}</option>
+                {eventTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
                 ))}
               </select>
-              
+
               <select
                 className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 value={filters.status}
-                onChange={(e) => setFilters(prev => ({ ...prev, status: e.target.value }))}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, status: e.target.value }))
+                }
               >
                 <option value="all">All Status</option>
                 <option value="upcoming">Upcoming</option>
@@ -736,7 +787,7 @@ const EventsManagement = () => {
               </select>
             </div>
           </div>
-          
+
           <div className="flex gap-3 w-full lg:w-auto">
             <button className="flex items-center space-x-2 px-4 py-3 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 transition-all duration-200 font-semibold">
               <Download className="w-4 h-4" />
@@ -769,7 +820,9 @@ const EventsManagement = () => {
               <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-8 h-8 text-gray-400" />
               </div>
-              <p className="text-gray-500 text-lg">No events found matching your criteria.</p>
+              <p className="text-gray-500 text-lg">
+                No events found matching your criteria.
+              </p>
               <button
                 onClick={handleCreateEvent}
                 className="mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-6 py-3 rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
@@ -778,8 +831,11 @@ const EventsManagement = () => {
               </button>
             </div>
           ) : (
-            filteredEvents.map(event => (
-              <div key={event._id} className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-200">
+            filteredEvents.map((event) => (
+              <div
+                key={event._id}
+                className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all duration-200"
+              >
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-xl font-bold text-gray-900">
                     {event.title}
@@ -788,15 +844,17 @@ const EventsManagement = () => {
                     {event.type}
                   </span>
                 </div>
-                
+
                 <p className="text-gray-600 mb-4 text-sm leading-relaxed">
                   {event.description}
                 </p>
-                
+
                 <div className="space-y-3 mb-6">
                   <div className="flex items-center text-sm text-gray-600">
                     <Calendar className="w-4 h-4 mr-2 text-purple-500" />
-                    <span className="font-medium">{formatDate(event.date)}</span>
+                    <span className="font-medium">
+                      {formatDate(event.date)}
+                    </span>
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <Clock className="w-4 h-4 mr-2 text-blue-500" />
@@ -804,25 +862,34 @@ const EventsManagement = () => {
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <MapPin className="w-4 h-4 mr-2 text-red-500" />
-                    <span className="font-medium">Location: {event.location}</span>
+                    <span className="font-medium">
+                      Location: {event.location}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center text-sm text-gray-600">
                       <Users className="w-4 h-4 mr-2 text-green-500" />
-                      <span>Registered: {getCurrentAttendees(event)} / {event.maxAttendees}</span>
+                      <span>
+                        Registered: {getCurrentAttendees(event)} /{" "}
+                        {event.maxAttendees}
+                      </span>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex justify-between items-center pt-4 border-t border-gray-200">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                    event.status === 'upcoming' ? 'bg-green-100 text-green-800' :
-                    event.status === 'completed' ? 'bg-gray-100 text-gray-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      event.status === "upcoming"
+                        ? "bg-green-100 text-green-800"
+                        : event.status === "completed"
+                        ? "bg-gray-100 text-gray-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
                     {event.status}
                   </span>
-                  
+
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEditEvent(event)}
@@ -852,9 +919,9 @@ const EventsManagement = () => {
           <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 lg:p-8">
               <h2 className="text-2xl lg:text-3xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                {editingEvent ? 'Edit Event' : 'Create New Event'}
+                {editingEvent ? "Edit Event" : "Create New Event"}
               </h2>
-              
+
               <form onSubmit={handleSubmitEvent} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -871,7 +938,7 @@ const EventsManagement = () => {
                       placeholder="Enter event title"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                       Event Type *
@@ -883,8 +950,10 @@ const EventsManagement = () => {
                       value={eventForm.type}
                       onChange={handleInputChange}
                     >
-                      {eventTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
+                      {eventTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -904,7 +973,7 @@ const EventsManagement = () => {
                       onChange={handleInputChange}
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                       Time *
@@ -935,7 +1004,7 @@ const EventsManagement = () => {
                       placeholder="Enter event location"
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                       Max Attendees *
@@ -983,7 +1052,7 @@ const EventsManagement = () => {
                       onChange={handleInputChange}
                     />
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-3">
                       Organizer *
@@ -1012,7 +1081,7 @@ const EventsManagement = () => {
                     type="submit"
                     className="px-8 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg transform hover:scale-105 transition-all duration-200 font-semibold"
                   >
-                    {editingEvent ? 'Update Event' : 'Create Event'}
+                    {editingEvent ? "Update Event" : "Create Event"}
                   </button>
                 </div>
               </form>
@@ -1026,50 +1095,49 @@ const EventsManagement = () => {
 
 // Main AdminDashboard Component
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState("dashboard");
   const { user, logout } = useAuth();
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
+      case "dashboard":
         return (
           <TabContentWrapper title="Admin Dashboard Overview" icon={Activity}>
             <DashboardOverview onNavigate={setActiveTab} />
           </TabContentWrapper>
         );
-      case 'events':
+      case "events":
         return (
           <TabContentWrapper title="Event Management Center" icon={Calendar}>
             <EventsManagement />
           </TabContentWrapper>
         );
-      case 'users':
+      case "users":
         return (
           <TabContentWrapper title="Users Management" icon={Users}>
             <UsersManagement />
           </TabContentWrapper>
         );
-      case 'messages':
+      case "messages":
         return (
           <TabContentWrapper title="Messages" icon={MessageSquare}>
             <MessagingPage embedded={true} />
           </TabContentWrapper>
         );
-      case 'analytics':
+      case "analytics":
         return (
           <TabContentWrapper title="Analytics Dashboard" icon={BarChart3}>
-            <div className="text-center py-12">
-              <BarChart3 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg">Analytics dashboard coming soon...</p>
-            </div>
+            <AnalyticsDashboard />
           </TabContentWrapper>
         );
-      case 'settings':
+      case "settings":
         return (
           <TabContentWrapper title="Settings" icon={Settings}>
             <div className="text-center py-12">
               <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg">Settings panel coming soon...</p>
+              <p className="text-gray-600 text-lg">
+                Settings panel coming soon...
+              </p>
             </div>
           </TabContentWrapper>
         );
@@ -1077,7 +1145,9 @@ const AdminDashboard = () => {
         return (
           <TabContentWrapper title="Admin Dashboard">
             <div className="text-center py-12">
-              <p className="text-gray-600">Select a tab to manage different sections</p>
+              <p className="text-gray-600">
+                Select a tab to manage different sections
+              </p>
             </div>
           </TabContentWrapper>
         );
@@ -1085,10 +1155,12 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-gray-50 via-${PRIMARY_TW_COLOR}-50/30 to-${ACCENT_TW_COLOR}-50/30`}>
-      <AdminNavbar 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
+    <div
+      className={`min-h-screen bg-gradient-to-br from-gray-50 via-${PRIMARY_TW_COLOR}-50/30 to-${ACCENT_TW_COLOR}-50/30`}
+    >
+      <AdminNavbar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
         onLogout={logout}
         user={user}
       />
