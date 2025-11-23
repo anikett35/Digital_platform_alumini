@@ -28,6 +28,7 @@ import Chatbot from "../Common/Chatbot";
 import MessagingPage from "../Messaging/MessagingPage";
 import UsersManagement from "./UsersManagement";
 import AnalyticsDashboard from "./AnalyticsDashboard";
+import SettingsPage from "./SettingsPage";
 import axios from "axios";
 
 const API_URL = "http://localhost:5000/api";
@@ -1131,16 +1132,7 @@ const AdminDashboard = () => {
           </TabContentWrapper>
         );
       case "settings":
-        return (
-          <TabContentWrapper title="Settings" icon={Settings}>
-            <div className="text-center py-12">
-              <Settings className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg">
-                Settings panel coming soon...
-              </p>
-            </div>
-          </TabContentWrapper>
-        );
+        return <SettingsPage />;
       default:
         return (
           <TabContentWrapper title="Admin Dashboard">
