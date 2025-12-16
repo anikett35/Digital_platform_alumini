@@ -34,8 +34,8 @@ const Register = () => {
   const floatingElementsRef = useRef([]);
 
   const roles = [
-    { value: 'student', label: 'Student', icon: User, color: 'bg-blue-500' },
-    { value: 'alumni', label: 'Alumni', icon: GraduationCap, color: 'bg-green-500' }
+    { value: 'student', label: 'Student', icon: User, color: 'bg-gray-100 border-gray-900' },
+    { value: 'alumni', label: 'Alumni', icon: GraduationCap, color: 'bg-gray-100 border-gray-900' }
   ];
 
   const departments = [
@@ -215,7 +215,7 @@ const Register = () => {
       return (
         <>
           <div className="animate-slide-in-left">
-            <label className="block text-white/90 text-sm font-medium mb-2">
+            <label className="block text-gray-700 text-sm font-medium mb-2">
               Student ID
             </label>
             <input
@@ -223,26 +223,26 @@ const Register = () => {
               name="studentId"
               value={formData.studentId}
               onChange={handleInputChange}
-              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+              className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
               placeholder="Enter your student ID"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="animate-slide-in-left">
-              <label className="block text-white/90 text-sm font-medium mb-2">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
                 Current Year *
               </label>
               <select
                 name="currentYear"
                 value={formData.currentYear}
                 onChange={handleInputChange}
-                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                 required
               >
                 <option value="">Select Year</option>
                 {[1, 2, 3, 4, 5, 6, 7, 8].map(year => (
-                  <option key={year} value={year} className="bg-gray-800">
+                  <option key={year} value={year} className="bg-white">
                     Year {year}
                   </option>
                 ))}
@@ -250,19 +250,19 @@ const Register = () => {
             </div>
 
             <div className="animate-slide-in-right">
-              <label className="block text-white/90 text-sm font-medium mb-2">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
                 Enrollment Year *
               </label>
               <select
                 name="enrollmentYear"
                 value={formData.enrollmentYear}
                 onChange={handleInputChange}
-                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                 required
               >
                 <option value="">Select Year</option>
                 {years.map(year => (
-                  <option key={year} value={year} className="bg-gray-800">
+                  <option key={year} value={year} className="bg-white">
                     {year}
                   </option>
                 ))}
@@ -275,7 +275,7 @@ const Register = () => {
       return (
         <>
           <div className="animate-slide-in-left">
-            <label className="block text-white/90 text-sm font-medium mb-2">
+            <label className="block text-gray-700 text-sm font-medium mb-2">
               Student ID
             </label>
             <input
@@ -283,25 +283,25 @@ const Register = () => {
               name="studentId"
               value={formData.studentId}
               onChange={handleInputChange}
-              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+              className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
               placeholder="Enter your student ID"
             />
           </div>
 
           <div className="animate-slide-in-right">
-            <label className="block text-white/90 text-sm font-medium mb-2">
+            <label className="block text-gray-700 text-sm font-medium mb-2">
               Graduation Year *
             </label>
             <select
               name="graduationYear"
               value={formData.graduationYear}
               onChange={handleInputChange}
-              className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+              className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
               required
             >
               <option value="">Select Year</option>
               {years.map(year => (
-                <option key={year} value={year} className="bg-gray-800">
+                <option key={year} value={year} className="bg-white">
                   {year}
                 </option>
               ))}
@@ -310,24 +310,24 @@ const Register = () => {
 
           <div className="grid grid-cols-2 gap-4">
             <div className="animate-slide-in-left">
-              <label className="block text-white/90 text-sm font-medium mb-2">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
                 Current Company
               </label>
               <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
                   name="currentCompany"
                   value={formData.currentCompany}
                   onChange={handleInputChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                   placeholder="Enter your current company"
                 />
               </div>
             </div>
 
             <div className="animate-slide-in-right">
-              <label className="block text-white/90 text-sm font-medium mb-2">
+              <label className="block text-gray-700 text-sm font-medium mb-2">
                 Current Position
               </label>
               <input
@@ -335,7 +335,7 @@ const Register = () => {
                 name="currentPosition"
                 value={formData.currentPosition}
                 onChange={handleInputChange}
-                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                 placeholder="Enter your current position"
               />
             </div>
@@ -347,56 +347,55 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4 relative overflow-hidden"
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #3730a3 100%)'
+        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)'
       }}
     >
-      {/* Animated Background Elements */}
+      {/* Animated Background Elements - Subtle and professional */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Floating geometric shapes */}
+        {/* Floating geometric shapes - Subtle gray tones */}
         <div 
-          className="floating-element absolute top-1/4 left-1/4 w-8 h-8 border-2 border-blue-400/30 rounded-lg transition-transform duration-1000"
+          className="floating-element absolute top-1/4 left-1/4 w-8 h-8 border border-gray-300/30 rounded-lg transition-transform duration-1000"
         ></div>
         <div 
-          className="floating-element absolute top-1/3 right-1/4 w-6 h-6 border-2 border-purple-400/30 rounded-full transition-transform duration-1000"
+          className="floating-element absolute top-1/3 right-1/4 w-6 h-6 border border-gray-300/30 rounded-full transition-transform duration-1000"
         ></div>
         <div 
-          className="floating-element absolute bottom-1/4 left-1/3 w-10 h-10 border-2 border-cyan-400/30 rotate-45 transition-transform duration-1000"
+          className="floating-element absolute bottom-1/4 left-1/3 w-10 h-10 border border-gray-300/30 rotate-45 transition-transform duration-1000"
         ></div>
         <div 
-          className="floating-element absolute bottom-1/3 right-1/3 w-12 h-12 border-2 border-pink-400/30 rounded-full transition-transform duration-1000"
+          className="floating-element absolute bottom-1/3 right-1/3 w-12 h-12 border border-gray-300/30 rounded-full transition-transform duration-1000"
         ></div>
         
-        {/* Animated gradient orbs */}
-        <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-r from-blue-500/10 to-cyan-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-r from-purple-500/10 to-pink-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        {/* Subtle gradient orbs */}
+        <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-r from-gray-100/30 to-gray-200/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-r from-gray-100/30 to-gray-200/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
       <div className="w-full max-w-2xl relative z-10">
         <div 
           className={`
-            bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 p-8 
-            hover:border-gray-600/50 transition-all duration-500
+            bg-white backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 p-8 
+            hover:border-gray-300 transition-all duration-500
             ${isVisible ? 'animate-fade-in-up' : 'opacity-0 translate-y-10'}
           `}
           style={{
-            background: 'radial-gradient(circle at top right, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.9))',
             animation: 'fadeInUp 0.8s ease-out'
           }}
         >
           {/* Header */}
           <div className="text-center mb-8">
             <div className="relative inline-block mb-4 animate-bounce-gentle">
-              <div className="relative w-20 h-20 bg-gradient-to-r from-green-500 to-blue-600 rounded-full flex items-center justify-center mx-auto shadow-lg">
+              <div className="relative w-20 h-20 bg-gradient-to-r from-gray-900 to-gray-700 rounded-full flex items-center justify-center mx-auto shadow-lg">
                 <Users className="w-10 h-10 text-white" />
-                <div className="absolute inset-0 border-2 border-green-400/50 rounded-full animate-ping"></div>
+                <div className="absolute inset-0 border border-gray-400/30 rounded-full animate-ping opacity-30"></div>
               </div>
             </div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-green-400 to-blue-500 bg-clip-text text-transparent mb-2 animate-fade-in">
+            <h2 className="text-3xl font-bold text-gray-900 mb-2 animate-fade-in">
               Create Your Account
             </h2>
-            <p className="text-gray-400 animate-fade-in-delay">
+            <p className="text-gray-600 animate-fade-in-delay">
               Join the network to connect with fellow alumni and students
             </p>
           </div>
@@ -404,15 +403,15 @@ const Register = () => {
           {/* Divider */}
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-600/50"></div>
+              <div className="w-full border-t border-gray-300"></div>
             </div>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="error-message mb-6 p-4 bg-red-500/20 border border-red-500/30 rounded-lg flex items-center space-x-2 backdrop-blur-sm">
-              <AlertCircle className="w-5 h-5 text-red-400" />
-              <span className="text-red-200 text-sm">{error}</span>
+            <div className="error-message mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
+              <AlertCircle className="w-5 h-5 text-red-500" />
+              <span className="text-red-700 text-sm">{error}</span>
             </div>
           )}
 
@@ -420,7 +419,7 @@ const Register = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Role Selection */}
             <div className="animate-fade-in">
-              <label className="block text-white/90 text-sm font-medium mb-3">
+              <label className="block text-gray-700 text-sm font-medium mb-3">
                 I am a... *
               </label>
               <div className="grid grid-cols-2 gap-3">
@@ -433,12 +432,16 @@ const Register = () => {
                       onClick={() => handleRoleChange(role.value)}
                       className={`p-4 rounded-xl border-2 transition-all duration-200 transform hover:scale-105 ${
                         formData.role === role.value
-                          ? `${role.color} border-white/30 shadow-lg scale-105`
-                          : 'bg-white/10 border-white/20 hover:bg-white/20'
+                          ? 'bg-gray-50 border-gray-900 shadow-lg scale-105'
+                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
                       }`}
                     >
-                      <IconComponent className="w-6 h-6 text-white mx-auto mb-2" />
-                      <span className="text-white text-sm font-medium">
+                      <IconComponent className={`w-6 h-6 mx-auto mb-2 ${
+                        formData.role === role.value ? 'text-gray-900' : 'text-gray-600'
+                      }`} />
+                      <span className={`text-sm font-medium ${
+                        formData.role === role.value ? 'text-gray-900' : 'text-gray-600'
+                      }`}>
                         {role.label}
                       </span>
                     </button>
@@ -449,16 +452,16 @@ const Register = () => {
 
             {/* Basic Info */}
             <div className="space-y-4">
-              <h3 className="text-white text-lg font-semibold animate-slide-in-left">Full Name</h3>
+              <h3 className="text-gray-900 text-lg font-semibold animate-slide-in-left">Full Name</h3>
               <div className="animate-slide-in-left">
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type="text"
                     name="name"
                     value={formData.name}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                     placeholder="Enter your full name"
                     required
                   />
@@ -467,15 +470,15 @@ const Register = () => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="animate-slide-in-left">
-                  <h3 className="text-white text-lg font-semibold mb-2">Email Address</h3>
+                  <h3 className="text-gray-900 text-lg font-semibold mb-2">Email Address</h3>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                       placeholder="you@example.com"
                       required
                     />
@@ -483,15 +486,15 @@ const Register = () => {
                 </div>
 
                 <div className="animate-slide-in-right">
-                  <h3 className="text-white text-lg font-semibold mb-2">Mobile Number</h3>
+                  <h3 className="text-gray-900 text-lg font-semibold mb-2">Mobile Number</h3>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                     <input
                       type="tel"
                       name="mobileNumber"
                       value={formData.mobileNumber}
                       onChange={handleInputChange}
-                      className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                      className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                       placeholder="Enter your mobile number"
                     />
                   </div>
@@ -502,22 +505,22 @@ const Register = () => {
             {/* Password Fields */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="animate-slide-in-left">
-                <h3 className="text-white text-lg font-semibold mb-2">Create Password</h3>
+                <h3 className="text-gray-900 text-lg font-semibold mb-2">Create Password</h3>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 pr-12 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                     placeholder="Enter a strong password"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors duration-200"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors duration-200"
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -525,22 +528,22 @@ const Register = () => {
               </div>
 
               <div className="animate-slide-in-right">
-                <h3 className="text-white text-lg font-semibold mb-2">Confirm Password</h3>
+                <h3 className="text-gray-900 text-lg font-semibold mb-2">Confirm Password</h3>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <input
                     type={showConfirmPassword ? 'text' : 'password'}
                     name="confirmPassword"
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 pr-12 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 pr-12 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                     placeholder="Confirm your password"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/60 hover:text-white transition-colors duration-200"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors duration-200"
                   >
                     {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
@@ -551,17 +554,17 @@ const Register = () => {
             {/* Department and Batch Year */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="animate-slide-in-left">
-                <h3 className="text-white text-lg font-semibold mb-2">Department</h3>
+                <h3 className="text-gray-900 text-lg font-semibold mb-2">Department</h3>
                 <select
                   name="department"
                   value={formData.department}
                   onChange={handleInputChange}
-                  className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-4 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                  className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                   required
                 >
                   <option value="">Select Department</option>
                   {departments.map(dept => (
-                    <option key={dept} value={dept} className="bg-gray-800">
+                    <option key={dept} value={dept} className="bg-white">
                       {dept}
                     </option>
                   ))}
@@ -569,18 +572,18 @@ const Register = () => {
               </div>
 
               <div className="animate-slide-in-right">
-                <h3 className="text-white text-lg font-semibold mb-2">Batch Year</h3>
+                <h3 className="text-gray-900 text-lg font-semibold mb-2">Batch Year</h3>
                 <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/60" />
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
                   <select
                     name="batchYear"
                     value={formData.batchYear}
                     onChange={handleInputChange}
-                    className="w-full bg-white/10 border border-white/20 rounded-xl py-3 px-10 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 hover:border-white/30"
+                    className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                   >
                     <option value="">Select Year</option>
                     {years.map(year => (
-                      <option key={year} value={year} className="bg-gray-800">
+                      <option key={year} value={year} className="bg-white">
                         {year}
                       </option>
                     ))}
@@ -597,10 +600,10 @@ const Register = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-gradient-to-r from-green-500 to-blue-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-green-600 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-green-500/25 hover:scale-105 active:scale-95 relative overflow-hidden group"
+                className="w-full bg-gray-900 text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 focus:ring-offset-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 relative overflow-hidden group"
               >
                 {/* Button Shine Effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
                 
                 {isLoading ? (
                   <>
@@ -619,11 +622,11 @@ const Register = () => {
 
           {/* Links */}
           <div className="mt-6 text-center animate-fade-in-delay-4">
-            <div className="text-gray-400 text-sm">
+            <div className="text-gray-600 text-sm">
               Already have an account?{' '}
               <Link
                 to="/login"
-                className="text-cyan-400 hover:text-cyan-300 font-medium transition-colors hover:underline"
+                className="text-gray-900 hover:text-gray-700 font-medium transition-colors hover:underline"
               >
                 Login
               </Link>
