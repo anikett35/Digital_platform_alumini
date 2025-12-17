@@ -1,4 +1,3 @@
-// Import React and necessary libraries
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
@@ -21,6 +20,10 @@ import Chatbot from './components/Common/Chatbot';
 import MentorSuggestions from './components/AI/MentorSuggestions';
 import SetupProfile from './components/AI/SetupProfile';
 import MentorshipDashboard from './components/AI/MentorshipDashboard';
+
+// Alumni Profiles Components
+import ProfilesList from './components/Profiles/ProfilesList';
+import AlumniProfilePage from './components/Profiles/AlumniProfilePage';
 
 // Utils
 import PrivateRoute from './utils/PrivateRoute';
@@ -84,12 +87,50 @@ const AppContent = () => {
           } 
         />
 
-        {/* Main Dashboard Route - This handles all dashboard tabs including messages */}
+        {/* Main Dashboard Route */}
         <Route
           path="/dashboard/*"
           element={
             <PrivateRoute>
               <DashboardRouter />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Alumni Directory/Profiles List Route */}
+        <Route
+          path="/alumni-directory"
+          element={
+            <PrivateRoute>
+              <ProfilesList />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Individual Alumni Profile Route */}
+        <Route
+          path="/alumni/:id"
+          element={
+            <PrivateRoute>
+              <AlumniProfilePage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* Alternative profile routes for flexibility */}
+        <Route
+          path="/profiles/:id"
+          element={
+            <PrivateRoute>
+              <AlumniProfilePage />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/profile/:id"
+          element={
+            <PrivateRoute>
+              <AlumniProfilePage />
             </PrivateRoute>
           }
         />
@@ -108,7 +149,7 @@ const AppContent = () => {
           element={<Navigate to="/dashboard" replace />}
         />
 
-        {/* AI Mentorship System Routes - Keep these separate if needed */}
+        {/* AI Mentorship System Routes */}
         <Route
           path="/ai-matching"
           element={

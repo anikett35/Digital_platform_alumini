@@ -4,7 +4,7 @@ import {
   Brain, Users, Settings, User, Calendar, Briefcase, BookOpen, MessageCircle, FileText,
   AlertCircle, RefreshCw, Bell, Search, LogOut, Menu, X, Home, GraduationCap,
   MessageSquare, TrendingUp, Award, Target, Sparkles, ArrowRight, Clock, MapPin,
-  Maximize2, Plus
+  Maximize2, Plus, UserCircle
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import MentorSuggestions from '../AI/MentorSuggestions';
@@ -14,6 +14,8 @@ import PostsPage from '../Posts/PostsPage';
 import MessagingPage from '../Messaging/MessagingPage';
 import EventsPage from '../Events/EventsPage';
 import Chatbot from '../Common/Chatbot';
+import ProfilesList from '../Profiles/ProfilesList';
+import AlumniProfilePage from '../Profiles/AlumniProfilePage';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
@@ -47,6 +49,7 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
 
   const studentTabs = [
     { id: 'overview', name: 'Dashboard', icon: Home },
+    { id: 'alumni', name: 'Alumni Directory', icon: UserCircle },
     { id: 'ai-matching', name: 'AI Match', icon: Brain },
     { id: 'my-mentorships', name: 'Mentorships', icon: Users },
     { id: 'events', name: 'Events', icon: Calendar },
@@ -254,11 +257,14 @@ const StudentDashboard = () => {
               onNavigateToPosts={() => handleTabChange('posts')}
               onNavigateToMessages={() => handleTabChange('messages')}
               onNavigateToEvents={() => handleTabChange('events')}
+              onNavigateToAlumni={() => handleTabChange('alumni')}
               loading={loading}
               primaryColor={PRIMARY_TW_COLOR}
               accentColor={ACCENT_TW_COLOR}
             />
           );
+        case 'alumni':
+          return <TabContentWrapper title="Alumni Directory 👥"><ProfilesList /></TabContentWrapper>;
         case 'ai-matching':
           return <TabContentWrapper title="AI Mentor Matching 🧠"><MentorSuggestions /></TabContentWrapper>;
         case 'my-mentorships':
@@ -351,7 +357,7 @@ const TabContentWrapper = ({ title, children, icon: Icon }) => (
   </div>
 );
 
-const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPosts, onNavigateToMessages, onNavigateToEvents, loading, primaryColor, accentColor }) => {
+const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPosts, onNavigateToMessages, onNavigateToEvents, onNavigateToAlumni, loading, primaryColor, accentColor }) => {
   const [localLoading, setLocalLoading] = useState(false);
   const { user } = useAuth();
   const firstName = user?.name?.split(' ')[0] || 'Student';
@@ -366,6 +372,12 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
       onNavigateToMessages();
     } else if (action === 'events') {
       onNavigateToEvents();
+    } else if (action === 'alumni') {
+      onNavigateToAlumni();
+    } else if (action === 'ai-matching') {
+      onNavigateToEvents('ai-matching');
+    } else if (action === 'setup-profile') {
+      onNavigateToEvents('setup-profile');
     }
   };
 
@@ -570,6 +582,13 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
           <QuickActionButton
+            icon={UserCircle}
+            label="Alumni Directory"
+            gradient="from-indigo-500 to-purple-600"
+            onClick={() => handleQuickAction('alumni')}
+            loading={localLoading}
+          />
+          <QuickActionButton
             icon={FileText}
             label="Community Feed"
             gradient={PRIMARY_GRADIENT}
@@ -595,6 +614,13 @@ const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPost
             label="Messages"
             gradient="from-pink-500 to-red-500"
             onClick={() => handleQuickAction('messages')}
+            loading={localLoading}
+          />
+          <QuickActionButton
+            icon={Users}
+            label="Mentorships"
+            gradient="from-green-500 to-emerald-600"
+            onClick={() => handleQuickAction('my-mentorships')}
             loading={localLoading}
           />
         </div>
