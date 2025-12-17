@@ -82,14 +82,153 @@ const userSchema = new mongoose.Schema({
   },
   profileImage: {
     type: String,
+    trim: true,
+    default: ''
+  },
+  
+  // NEW: Photo gallery fields
+  photoGallery: [{
+    url: {
+      type: String,
+      required: true
+    },
+    caption: {
+      type: String,
+      default: ''
+    },
+    uploadedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  
+  coverPhoto: {
+    type: String,
     trim: true
   },
+  
+  // Profile visibility and preferences
   isActive: {
     type: Boolean,
     default: true
   },
   lastLogin: {
     type: Date
+  },
+  
+  // AI Matching fields
+  profileHeadline: {
+    type: String,
+    default: '',
+    maxlength: 200
+  },
+  industry: {
+    type: String,
+    trim: true
+  },
+  location: {
+    type: String,
+    trim: true
+  },
+  
+  // Career history
+  workExperience: [{
+    company: {
+      type: String,
+      trim: true,
+      required: true
+    },
+    position: {
+      type: String,
+      trim: true,
+      required: true
+    },
+    location: {
+      type: String,
+      trim: true
+    },
+    startDate: {
+      type: Date,
+      required: true
+    },
+    endDate: {
+      type: Date
+    },
+    currentlyWorking: {
+      type: Boolean,
+      default: false
+    },
+    description: {
+      type: String,
+      maxlength: 500
+    }
+  }],
+  
+  // Education history
+  education: [{
+    institution: {
+      type: String,
+      trim: true,
+      required: true
+    },
+    degree: {
+      type: String,
+      trim: true
+    },
+    fieldOfStudy: {
+      type: String,
+      trim: true
+    },
+    startYear: {
+      type: Number
+    },
+    endYear: {
+      type: Number
+    },
+    description: {
+      type: String,
+      maxlength: 500
+    }
+  }],
+  
+  // Additional links
+  website: {
+    type: String,
+    trim: true
+  },
+  
+  // Mentorship settings
+  isOpenToMentorship: {
+    type: Boolean,
+    default: false
+  },
+  
+  // AI Matching preferences
+  careerGoals: [{
+    type: String,
+    trim: true
+  }],
+  industryPreferences: [{
+    type: String,
+    trim: true
+  }],
+  lookingForMentor: {
+    type: Boolean,
+    default: false
+  },
+  availableAsMentor: {
+    type: Boolean,
+    default: false
+  },
+  mentorshipAreas: [{
+    type: String,
+    trim: true
+  }],
+  
+  profileVisibility: {
+    type: String,
+    enum: ['public', 'connections', 'private'],
+    default: 'public'
   }
 }, {
   timestamps: true

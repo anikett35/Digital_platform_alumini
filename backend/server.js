@@ -53,6 +53,7 @@ const postRoutes = require('./routes/posts');
 const messageRoutes = require('./routes/messages');
 const aiMatchingRoutes = require('./routes/aiMatching');
 const eventRoutes = require('./routes/events');
+const profileRoutes = require('./routes/profiles');
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -60,6 +61,7 @@ app.use('/api/posts', postRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/ai-matching', aiMatchingRoutes);
 app.use('/api/events', eventRoutes);
+app.use('/api/profiles', profileRoutes);
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
