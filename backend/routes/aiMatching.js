@@ -8,10 +8,21 @@ const {
   respondToMentorshipRequest,
   getMentorshipStatus,
   updateMatchingProfile,
-  getMatchingAnalytics
+  getMatchingAnalytics,
+  getUserProfile,
+  getProfileStatus
 } = require('../controllers/aiMatchingController');
 
 const { auth, checkRole, adminOnly } = require('../middleware/auth');
+
+// Get user profile for AI matching
+router.get('/profile', auth, getUserProfile);
+
+// Update user profile for AI matching
+router.put('/profile', auth, updateMatchingProfile);
+
+// Get profile completion status
+router.get('/profile-status', auth, getProfileStatus);
 
 // Get AI-powered mentor suggestions (student only)
 router.get('/suggestions', auth, checkRole('student'), getAIMentorSuggestions);
@@ -32,9 +43,6 @@ router.post('/respond', auth, checkRole('alumni'), [
 
 // Get mentorship status (student or mentor)
 router.get('/status', auth, getMentorshipStatus);
-
-// Update matching profile (student or mentor)
-router.put('/profile', auth, updateMatchingProfile);
 
 // Get analytics (admin only)
 router.get('/analytics', auth, adminOnly, getMatchingAnalytics);

@@ -60,6 +60,157 @@ class AIMatchingEngine {
 
 // ==================== CONTROLLER FUNCTIONS ====================
 
+// Get user profile for AI matching
+exports.getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const user = await User.findById(userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    res.status(200).json({
+      success: true,
+      user
+    });
+    
+  } catch (error) {
+    console.error('Get profile error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error', 
+      error: error.message 
+    });
+  }
+};
+
+// Update user profile for AI matching
+exports.updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const updateData = req.body;
+    
+    console.log('Updating profile for user:', userId);
+    console.log('Update data:', updateData);
+    
+    // Calculate profile strength
+    let filledFields = 0;
+    const totalFields = 12;
+    
+    if (updateData.bio && updateData.bio.trim()) filledFields++;
+    if (updateData.skills && updateData.skills.length > 0) filledFields++;
+    if (updateData.interests && updateData.interests.length > 0) filledFields++;
+    if (updateData.careerGoals && updateData.careerGoals.length > 0) filledFields++;
+    if (updateData.industryPreferences && updateData.industryPreferences.length > 0) filledFields++;
+    if (updateData.currentPosition && updateData.currentPosition.trim()) filledFields++;
+    if (updateData.yearsOfExperience && updateData.yearsOfExperience > 0) filledFields++;
+    if (updateData.location && updateData.location.trim()) filledFields++;
+    if (updateData.currentCompany && updateData.currentCompany.trim()) filledFields++;
+    if (updateData.education && updateData.education.length > 0) filledFields++;
+    if (updateData.profileHeadline && updateData.profileHeadline.trim()) filledFields++;
+    if (updateData.industry && updateData.industry.trim()) filledFields++;
+    
+    const profileStrength = Math.min((filledFields / totalFields) * 100, 100);
+    
+    // Prepare update object - map frontend fields to backend model
+    const updateObject = {
+      // Basic info
+      bio: updateData.bio,
+      currentPosition: updateData.currentRole || updateData.currentPosition,
+      location: updateData.location,
+      currentCompany: updateData.currentCompany,
+      profileHeadline: updateData.profileHeadline || updateData.bio?.substring(0, 200),
+      industry: updateData.industry,
+      
+      // Arrays
+      skills: updateData.skills,
+      interests: updateData.interests,
+      careerGoals: updateData.careerGoals,
+      industryPreferences: updateData.industryPreferences,
+      education: updateData.education,
+      mentorshipAreas: updateData.mentorshipAreas,
+      
+      // URLs
+      linkedinUrl: updateData.linkedinUrl,
+      githubUrl: updateData.githubUrl,
+      
+      // Mentorship preferences
+      lookingForMentor: updateData.lookingForMentor,
+      availableAsMentor: updateData.availableAsMentor,
+      
+      // Calculated fields
+      profileStrength,
+      profileComplete: profileStrength >= 70,
+      lastProfileUpdate: new Date()
+    };
+    
+    // Remove undefined fields
+    Object.keys(updateObject).forEach(key => {
+      if (updateObject[key] === undefined) {
+        delete updateObject[key];
+      }
+    });
+    
+    console.log('Update object to save:', updateObject);
+    
+    // Update user profile
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateObject },
+      { new: true, runValidators: true }
+    ).select('-password');
+    
+    if (!updatedUser) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    console.log('Profile updated successfully:', updatedUser.email);
+    
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+    
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update profile', 
+      error: error.message 
+    });
+  }
+};
+
+// Get profile completion status
+exports.getProfileStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const user = await User.findById(userId).select('profileComplete profileStrength');
+    
+    res.status(200).json({
+      success: true,
+      profileComplete: user?.profileComplete || false,
+      profileStrength: user?.profileStrength || 0
+    });
+    
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error' 
+    });
+  }
+};
+
 // Get AI-powered mentor suggestions
 exports.getAIMentorSuggestions = async (req, res) => {
   try {
@@ -189,22 +340,8 @@ exports.getMentorshipStatus = async (req, res) => {
   }
 };
 
-// Update matching profile
-exports.updateMatchingProfile = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const updates = req.body;
-
-    const user = await User.findByIdAndUpdate(userId, updates, { new: true })
-      .select('name email role interests skills careerGoals industryPreferences lookingForMentor availableAsMentor mentorshipAreas bio');
-
-    res.json({ message: 'Matching profile updated successfully', user });
-
-  } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({ message: 'Error updating matching profile' });
-  }
-};
+// Update matching profile (now using the specific function above)
+exports.updateMatchingProfile = exports.updateUserProfile;
 
 // Get matching analytics (admin)
 exports.getMatchingAnalytics = async (req, res) => {
