@@ -2,12 +2,10 @@ const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const User = require('./models/User');
 
-// Load environment variables
 dotenv.config();
 
 const createAdmin = async () => {
   try {
-    // Connect to database
     await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -15,32 +13,46 @@ const createAdmin = async () => {
     
     console.log('✅ Connected to MongoDB');
 
-    // Check if admin already exists
-    const existingAdmin = await User.findOne({ email: 'admin@example.com' });
-    
-    if (existingAdmin) {
-      console.log('⚠️  Admin user already exists!');
-      console.log('Email:', existingAdmin.email);
-      console.log('Role:', existingAdmin.role);
-      
-      // Update to ensure it's an admin
-      existingAdmin.role = 'admin';
-      await existingAdmin.save();
-      console.log('✅ Updated existing user to admin role');
-    } else {
-      // Create new admin user
-      const adminUser = new User({
-        name: 'Admin User',
-        email: 'admin@example.com',
-        password: 'admin123', // Change this password!
-        role: 'admin',
-        department: 'Administration',
-        phoneNumber: '1234567890',
-        isActive: true
-      });
+    const adminData = {
+      name: 'Admin User',
+      email: 'admin@example.com',
+      password: 'admin123', // This will be hashed automatically by your User model
+      role: 'admin',
+      department: 'Administration',
+      phoneNumber: '1234567890',
+      isActive: true,
+      // Add required fields for your schema
+      studentId: 'ADMIN001',
+      currentYear: 1,
+      enrollmentYear: new Date().getFullYear(),
+      profileVisibility: 'public'
+    };
 
-      await adminUser.save();
-      console.log('✅ Admin user created successfully!');
+    // Check if admin exists
+    let admin = await User.findOne({ email: 'admin@example.com' });
+    
+    if (admin) {
+      console.log('⚠️  Admin already exists, updating...');
+      
+      // Update admin fields
+      admin.name = adminData.name;
+      admin.role = 'admin';
+      admin.department = adminData.department;
+      admin.phoneNumber = adminData.phoneNumber;
+      admin.isActive = true;
+      
+      // Update password if provided (it will be hashed by pre-save hook)
+      if (adminData.password) {
+        admin.password = adminData.password;
+      }
+      
+      await admin.save();
+      console.log('✅ Admin updated successfully!');
+    } else {
+      // Create new admin
+      admin = new User(adminData);
+      await admin.save();
+      console.log('✅ Admin created successfully!');
     }
 
     console.log('\n📧 Admin Credentials:');
@@ -50,7 +62,12 @@ const createAdmin = async () => {
 
     process.exit(0);
   } catch (error) {
-    console.error('❌ Error creating admin:', error);
+    console.error('❌ Error creating admin:', error.message);
+    
+    if (error.code === 11000) {
+      console.error('Duplicate email detected!');
+    }
+    
     process.exit(1);
   }
 };
