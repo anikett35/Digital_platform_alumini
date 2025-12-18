@@ -28,6 +28,14 @@ const Register = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
+  // NEW: password checklist state
+  const [passwordStrength, setPasswordStrength] = useState({
+    hasUpperCase: false,
+    hasLowerCase: false,
+    hasSpecialChar: false,
+    hasMinLength: false,
+  });
+
   const { register, error, clearError } = useAuth();
   const navigate = useNavigate();
 
@@ -57,8 +65,7 @@ const Register = () => {
   // Initialize animations
   useEffect(() => {
     setIsVisible(true);
-    
-    // Start floating animation
+
     const floatingElements = document.querySelectorAll('.floating-element');
     floatingElementsRef.current = Array.from(floatingElements);
     startFloatingAnimation();
@@ -67,7 +74,7 @@ const Register = () => {
   // Floating animation using requestAnimationFrame
   const startFloatingAnimation = () => {
     let time = 0;
-    
+
     const animate = () => {
       time += 0.02;
       floatingElementsRef.current.forEach((el, index) => {
@@ -79,7 +86,7 @@ const Register = () => {
       });
       requestAnimationFrame(animate);
     };
-    
+
     animate();
   };
 
@@ -119,6 +126,20 @@ const Register = () => {
     if (error) clearError();
   };
 
+  // NEW: password validation logic (uppercase, lowercase, special, min 8)
+  const validatePasswordStrength = (password) => {
+    const upperCaseRegex = /[A-Z]/;                        // at least one uppercase
+    const lowerCaseRegex = /[a-z]/;                        // at least one lowercase
+    const specialCharRegex = /[~`!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/]/; // at least one special character [web:12][web:18]
+
+    setPasswordStrength({
+      hasUpperCase: upperCaseRegex.test(password),
+      hasLowerCase: lowerCaseRegex.test(password),
+      hasSpecialChar: specialCharRegex.test(password),
+      hasMinLength: password.length >= 8
+    });
+  };
+
   const validateForm = () => {
     if (!formData.name || !formData.email || !formData.department) {
       toast.error('Please fill in all required fields');
@@ -131,7 +152,19 @@ const Register = () => {
     }
 
     if (formData.password.length < 6) {
+      // This is kept if you still want a generic minimum; actual rule is below.
       toast.error('Password must be at least 6 characters long!');
+      return false;
+    }
+
+    // NEW: enforce strong password rules
+    if (
+      !passwordStrength.hasUpperCase ||
+      !passwordStrength.hasLowerCase ||
+      !passwordStrength.hasSpecialChar ||
+      !passwordStrength.hasMinLength
+    ) {
+      toast.error('Password must be at least 8 characters and include uppercase, lowercase and special character.');
       return false;
     }
 
@@ -152,12 +185,11 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setIsLoading(true);
 
-    // Button click animation
     const button = e.target.querySelector('button[type="submit"]');
     if (button) {
       button.style.transform = 'scale(0.95)';
@@ -192,7 +224,7 @@ const Register = () => {
 
     try {
       const result = await register(dataToSend);
-      
+
       if (result.success) {
         toast.success('🎉 Registration successful! Welcome aboard!', {
           position: "top-right",
@@ -355,26 +387,26 @@ const Register = () => {
       {/* Animated Background Elements - Subtle and professional */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Floating geometric shapes - Subtle gray tones */}
-        <div 
+        <div
           className="floating-element absolute top-1/4 left-1/4 w-8 h-8 border border-gray-300/30 rounded-lg transition-transform duration-1000"
         ></div>
-        <div 
+        <div
           className="floating-element absolute top-1/3 right-1/4 w-6 h-6 border border-gray-300/30 rounded-full transition-transform duration-1000"
         ></div>
-        <div 
+        <div
           className="floating-element absolute bottom-1/4 left-1/3 w-10 h-10 border border-gray-300/30 rotate-45 transition-transform duration-1000"
         ></div>
-        <div 
+        <div
           className="floating-element absolute bottom-1/3 right-1/3 w-12 h-12 border border-gray-300/30 rounded-full transition-transform duration-1000"
         ></div>
-        
+
         {/* Subtle gradient orbs */}
         <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-r from-gray-100/30 to-gray-200/30 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-r from-gray-100/30 to-gray-200/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
       </div>
 
       <div className="w-full max-w-2xl relative z-10">
-        <div 
+        <div
           className={`
             bg-white backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 p-8 
             hover:border-gray-300 transition-all duration-500
@@ -512,7 +544,10 @@ const Register = () => {
                     type={showPassword ? 'text' : 'password'}
                     name="password"
                     value={formData.password}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      handleInputChange(e);
+                      validatePasswordStrength(e.target.value); // NEW
+                    }}
                     className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 pr-12 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
                     placeholder="Enter a strong password"
                     required
@@ -525,6 +560,30 @@ const Register = () => {
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+
+                {/* NEW: Password checklist */}
+                {formData.password && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-1 text-xs md:text-sm">
+                    <div className="font-medium text-gray-700 mb-1">Password must contain:</div>
+
+                    <div className={`flex items-center ${passwordStrength.hasMinLength ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className="mr-1">{passwordStrength.hasMinLength ? '✓' : '○'}</span>
+                      At least 8 characters
+                    </div>
+                    <div className={`flex items-center ${passwordStrength.hasUpperCase ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className="mr-1">{passwordStrength.hasUpperCase ? '✓' : '○'}</span>
+                      One uppercase letter (A‑Z)
+                    </div>
+                    <div className={`flex items-center ${passwordStrength.hasLowerCase ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className="mr-1">{passwordStrength.hasLowerCase ? '✓' : '○'}</span>
+                      One lowercase letter (a‑z)
+                    </div>
+                    <div className={`flex items-center ${passwordStrength.hasSpecialChar ? 'text-green-600' : 'text-gray-500'}`}>
+                      <span className="mr-1">{passwordStrength.hasSpecialChar ? '✓' : '○'}</span>
+                      One special character (!@#$%^&*)
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="animate-slide-in-right">
@@ -602,9 +661,8 @@ const Register = () => {
                 disabled={isLoading}
                 className="w-full bg-gray-900 text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 focus:ring-offset-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 relative overflow-hidden group"
               >
-                {/* Button Shine Effect */}
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                
+
                 {isLoading ? (
                   <>
                     <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
