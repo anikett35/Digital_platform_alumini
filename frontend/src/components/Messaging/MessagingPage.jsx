@@ -5,8 +5,6 @@ import {
   Send, 
   ArrowLeft,
   Search,
-  Phone,
-  Video,
   MoreVertical,
   Paperclip,
   Smile
@@ -26,8 +24,14 @@ const MessagingPage = ({ embedded = false }) => {
   const [socket, setSocket] = useState(null);
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
   const { user, token } = useAuth();
+
+  // Get API URL from environment variable
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+  const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
 
   // Scroll to bottom of messages
   const scrollToBottom = () => {
@@ -38,17 +42,33 @@ const MessagingPage = ({ embedded = false }) => {
     scrollToBottom();
   }, [messages]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  }, [newMessage]);
+
   // Socket.IO connection
   useEffect(() => {
     if (user && token) {
-      const newSocket = io('http://localhost:5000', {
-        auth: { token }
+      const newSocket = io(SOCKET_URL, {
+        auth: { token },
+        transports: ['websocket', 'polling'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
       });
 
       setSocket(newSocket);
 
       newSocket.on('connect', () => {
-        console.log('Connected to server');
+        console.log('Connected to WebSocket server');
+      });
+
+      newSocket.on('connect_error', (error) => {
+        console.error('WebSocket connection error:', error);
       });
 
       newSocket.on('newMessage', (data) => {
@@ -80,7 +100,7 @@ const MessagingPage = ({ embedded = false }) => {
         newSocket.close();
       };
     }
-  }, [user, token, selectedConversation]);
+  }, [user, token, selectedConversation, SOCKET_URL]);
 
   useEffect(() => {
     fetchConversations();
@@ -90,10 +110,13 @@ const MessagingPage = ({ embedded = false }) => {
   const fetchConversations = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/messages/conversations');
+      const response = await axios.get(`${API_URL}/api/messages/conversations`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setConversations(response.data.conversations || []);
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -101,19 +124,25 @@ const MessagingPage = ({ embedded = false }) => {
 
   const fetchContacts = async () => {
     try {
-      const response = await axios.get('/api/messages/contacts');
+      const response = await axios.get(`${API_URL}/api/messages/contacts`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setContacts(response.data.users || []);
     } catch (error) {
       console.error('Failed to fetch contacts:', error);
+      setContacts([]);
     }
   };
 
   const fetchMessages = async (conversationId) => {
     try {
-      const response = await axios.get(`/api/messages/${conversationId}`);
+      const response = await axios.get(`${API_URL}/api/messages/${conversationId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setMessages(response.data.messages || []);
     } catch (error) {
       console.error('Failed to fetch messages:', error);
+      setMessages([]);
     }
   };
 
@@ -125,51 +154,67 @@ const MessagingPage = ({ embedded = false }) => {
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim() || !selectedConversation) return;
+    if (!newMessage.trim() || !selectedConversation || sendingMessage) return;
 
-    const messageContent = newMessage;
+    const messageContent = newMessage.trim();
     setNewMessage('');
+    setSendingMessage(true);
 
     const optimisticMessage = {
       _id: `temp_${Date.now()}`,
       content: messageContent,
       sender: {
         _id: user?.id || user?._id || user?.userId,
-        name: user?.name
+        name: user?.name,
+        avatar: user?.avatar
       },
       senderId: user?.id || user?._id || user?.userId,
       createdAt: new Date().toISOString(),
       conversationId: selectedConversation._id,
-      isOptimistic: true
+      isOptimistic: true,
+      status: 'sending'
     };
 
     setMessages(prev => [...prev, optimisticMessage]);
 
     try {
-      const response = await axios.post(`/api/messages/${selectedConversation._id}`, {
-        content: messageContent
-      });
+      const response = await axios.post(
+        `${API_URL}/api/messages/${selectedConversation._id}`,
+        { content: messageContent },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       
       if (response.data.message) {
         setMessages(prev => 
           prev.map(msg => 
-            msg._id === optimisticMessage._id ? response.data.message : msg
+            msg._id === optimisticMessage._id 
+              ? { ...response.data.message, status: 'sent' }
+              : msg
           )
         );
       }
     } catch (error) {
       console.error('Failed to send message:', error);
-      setMessages(prev => prev.filter(msg => msg._id !== optimisticMessage._id));
+      setMessages(prev => 
+        prev.map(msg => 
+          msg._id === optimisticMessage._id 
+            ? { ...msg, status: 'failed' }
+            : msg
+        )
+      );
       setNewMessage(messageContent);
-      alert('Failed to send message. Please try again.');
+    } finally {
+      setSendingMessage(false);
     }
   };
 
   const startNewConversation = async (contact) => {
     try {
-      const response = await axios.post('/api/messages/conversations', {
-        participantId: contact._id
-      });
+      const response = await axios.post(
+        `${API_URL}/api/messages/conversations`,
+        { participantId: contact._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       
       const newConversation = response.data.conversation;
       setConversations(prev => [newConversation, ...prev]);
@@ -178,10 +223,26 @@ const MessagingPage = ({ embedded = false }) => {
       setMessages([]);
     } catch (error) {
       console.error('Failed to create conversation:', error);
+      alert('Failed to create conversation. Please try again.');
     }
   };
 
+  const retryFailedMessage = async (messageId) => {
+    const failedMessage = messages.find(msg => msg._id === messageId);
+    if (!failedMessage || failedMessage.status !== 'failed') return;
+
+    setNewMessage(failedMessage.content);
+    setMessages(prev => prev.filter(msg => msg._id !== messageId));
+    
+    // Trigger send message after a brief delay
+    setTimeout(() => {
+      const sendButton = document.querySelector('button[type="submit"]');
+      if (sendButton) sendButton.click();
+    }, 100);
+  };
+
   const isUserOnline = (userId) => {
+    if (!userId) return false;
     return onlineUsers.some(u => u.userId === userId);
   };
 
@@ -197,29 +258,48 @@ const MessagingPage = ({ embedded = false }) => {
   };
 
   const formatMessageTime = (date) => {
-    return new Date(date).toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-  };
-
-  const formatConversationTime = (date) => {
-    const now = new Date();
-    const messageDate = new Date(date);
-    const diffInHours = (now - messageDate) / (1000 * 60 * 60);
-    
-    if (diffInHours < 24) {
-      return messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (diffInHours < 48) {
-      return 'Yesterday';
-    } else {
-      return messageDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    try {
+      return new Date(date).toLocaleTimeString([], { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: true
+      });
+    } catch (error) {
+      return '';
     }
   };
 
-  const filteredConversations = conversations.filter(conv => 
-    conv.participant?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const formatConversationTime = (date) => {
+    if (!date) return '';
+    
+    try {
+      const now = new Date();
+      const messageDate = new Date(date);
+      const diffInHours = (now - messageDate) / (1000 * 60 * 60);
+      
+      if (diffInHours < 24) {
+        return messageDate.toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        });
+      } else if (diffInHours < 48) {
+        return 'Yesterday';
+      } else {
+        return messageDate.toLocaleDateString([], { 
+          month: 'short', 
+          day: 'numeric' 
+        });
+      }
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const filteredConversations = conversations.filter(conv => {
+    const participantName = conv.participant?.name || '';
+    return participantName.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   return (
     <div className="h-[calc(100vh-120px)] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -239,7 +319,7 @@ const MessagingPage = ({ embedded = false }) => {
               <input
                 type="text"
                 placeholder="Search conversations..."
-                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+                className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm placeholder-gray-400"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -259,26 +339,29 @@ const MessagingPage = ({ embedded = false }) => {
                   <h3 className="font-semibold text-gray-900">Start New Conversation</h3>
                   <button
                     onClick={() => setShowContacts(false)}
-                    className="text-sm text-purple-600 hover:text-purple-700"
+                    className="text-sm text-purple-600 hover:text-purple-700 font-medium"
                   >
-                    Back
+                    Back to inbox
                   </button>
                 </div>
                 {contacts.length === 0 ? (
-                  <p className="text-center py-8 text-gray-500">No contacts available</p>
+                  <div className="text-center py-8">
+                    <Users className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p className="text-gray-500">No contacts available</p>
+                  </div>
                 ) : (
                   <div className="space-y-2">
                     {contacts.map(contact => (
-                      <div
+                      <button
                         key={contact._id}
                         onClick={() => startNewConversation(contact)}
-                        className="p-3 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors"
+                        className="w-full p-3 rounded-xl cursor-pointer hover:bg-purple-50 transition-colors text-left"
                       >
                         <div className="flex items-center space-x-3">
                           <div className="relative">
                             <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
                               <span className="text-white text-lg font-semibold">
-                                {contact.name.charAt(0)}
+                                {contact.name?.charAt(0) || '?'}
                               </span>
                             </div>
                             {isUserOnline(contact._id) && (
@@ -286,11 +369,11 @@ const MessagingPage = ({ embedded = false }) => {
                             )}
                           </div>
                           <div className="flex-1">
-                            <p className="font-semibold text-gray-900">{contact.name}</p>
-                            <p className="text-xs text-gray-500 capitalize">{contact.role}</p>
+                            <p className="font-semibold text-gray-900 truncate">{contact.name}</p>
+                            <p className="text-xs text-gray-500 truncate capitalize">{contact.role || 'User'}</p>
                           </div>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
@@ -315,10 +398,10 @@ const MessagingPage = ({ embedded = false }) => {
                     const isSelected = selectedConversation?._id === conversation._id;
                     
                     return (
-                      <div
+                      <button
                         key={conversation._id}
                         onClick={() => handleConversationSelect(conversation)}
-                        className={`p-4 cursor-pointer border-b border-gray-100 transition-all ${
+                        className={`w-full p-4 cursor-pointer border-b border-gray-100 transition-all text-left ${
                           isSelected 
                             ? 'bg-purple-50 border-l-4 border-l-purple-600' 
                             : 'hover:bg-gray-50'
@@ -338,10 +421,10 @@ const MessagingPage = ({ embedded = false }) => {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between mb-1">
                               <p className={`font-semibold truncate ${isSelected ? 'text-purple-900' : 'text-gray-900'}`}>
-                                {otherParticipant?.name}
+                                {otherParticipant?.name || 'Unknown User'}
                               </p>
-                              {conversation.lastMessage && (
-                                <span className="text-xs text-gray-500 ml-2">
+                              {conversation.lastMessage?.createdAt && (
+                                <span className="text-xs text-gray-500 ml-2 whitespace-nowrap">
                                   {formatConversationTime(conversation.lastMessage.createdAt)}
                                 </span>
                               )}
@@ -355,7 +438,7 @@ const MessagingPage = ({ embedded = false }) => {
                             )}
                           </div>
                         </div>
-                      </div>
+                      </button>
                     );
                   })
                 )}
@@ -388,13 +471,14 @@ const MessagingPage = ({ embedded = false }) => {
                     <button
                       onClick={() => setSelectedConversation(null)}
                       className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                      aria-label="Back to conversations"
                     >
                       <ArrowLeft className="w-5 h-5 text-gray-600" />
                     </button>
                     <div className="relative">
                       <div className="w-11 h-11 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold text-lg">
-                          {selectedConversation.participant?.name?.charAt(0)}
+                          {selectedConversation.participant?.name?.charAt(0) || '?'}
                         </span>
                       </div>
                       {isUserOnline(selectedConversation.participant?._id) && (
@@ -403,7 +487,7 @@ const MessagingPage = ({ embedded = false }) => {
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900">
-                        {selectedConversation.participant?.name}
+                        {selectedConversation.participant?.name || 'Unknown User'}
                       </p>
                       <p className="text-sm text-gray-500">
                         {isUserOnline(selectedConversation.participant?._id) ? (
@@ -419,13 +503,10 @@ const MessagingPage = ({ embedded = false }) => {
                   </div>
                   
                   <div className="flex items-center space-x-2">
-                    <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                      <Phone className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                      <Video className="w-5 h-5 text-gray-600" />
-                    </button>
-                    <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+                    <button 
+                      className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                      aria-label="More options"
+                    >
                       <MoreVertical className="w-5 h-5 text-gray-600" />
                     </button>
                   </div>
@@ -433,7 +514,7 @@ const MessagingPage = ({ embedded = false }) => {
               </div>
 
               {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white">
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-gradient-to-b from-gray-50 to-white">
                 {messages.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full">
                     <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-4">
@@ -450,34 +531,49 @@ const MessagingPage = ({ embedded = false }) => {
                     
                     return (
                       <div
-                        key={message._id}
+                        key={message._id || `msg-${index}`}
                         className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                       >
                         <div className={`flex items-end space-x-2 max-w-md ${isCurrentUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
                           {!isCurrentUser && showAvatar && (
                             <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
                               <span className="text-white text-xs font-semibold">
-                                {selectedConversation.participant?.name?.charAt(0)}
+                                {selectedConversation.participant?.name?.charAt(0) || '?'}
                               </span>
                             </div>
                           )}
                           {!isCurrentUser && !showAvatar && (
                             <div className="w-8"></div>
                           )}
-                          <div>
+                          <div className={`max-w-xs md:max-w-md ${isCurrentUser ? 'text-right' : 'text-left'}`}>
                             <div
-                              className={`px-4 py-3 rounded-2xl shadow-sm ${
+                              className={`px-4 py-3 rounded-2xl shadow-sm break-words ${
                                 isCurrentUser
                                   ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-br-sm'
                                   : 'bg-white text-gray-900 border border-gray-200 rounded-bl-sm'
+                              } ${
+                                message.status === 'failed' 
+                                  ? 'border-red-200 bg-red-50' 
+                                  : message.status === 'sending'
+                                  ? 'opacity-80'
+                                  : ''
                               }`}
                             >
-                              <p className="text-sm font-medium break-words">{message.content}</p>
+                              <p className="text-sm font-medium">{message.content}</p>
+                              {message.status === 'failed' && (
+                                <button
+                                  onClick={() => retryFailedMessage(message._id)}
+                                  className="text-xs text-red-500 hover:text-red-600 mt-1 underline"
+                                >
+                                  Failed to send. Click to retry.
+                                </button>
+                              )}
                             </div>
                             <p className={`text-xs mt-1 ${
-                              isCurrentUser ? 'text-right text-gray-400' : 'text-left text-gray-400'
+                              isCurrentUser ? 'text-gray-400' : 'text-gray-400'
                             }`}>
                               {formatMessageTime(message.createdAt)}
+                              {message.status === 'sending' && ' · Sending...'}
                             </p>
                           </div>
                         </div>
@@ -494,28 +590,34 @@ const MessagingPage = ({ embedded = false }) => {
                   <button
                     type="button"
                     className="p-2.5 rounded-lg hover:bg-gray-100 transition-colors"
+                    aria-label="Attach file"
                   >
                     <Paperclip className="w-5 h-5 text-gray-600" />
                   </button>
                   
                   <div className="flex-1 relative">
                     <textarea
+                      ref={textareaRef}
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                           e.preventDefault();
-                          handleSendMessage(e);
+                          if (!sendingMessage) {
+                            handleSendMessage(e);
+                          }
                         }
                       }}
                       placeholder="Type a message..."
                       rows="1"
-                      className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
-                      style={{ minHeight: '44px', maxHeight: '120px' }}
+                      className="w-full px-4 py-3 pr-12 rounded-xl border border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm placeholder-gray-400"
+                      disabled={sendingMessage}
+                      aria-label="Message input"
                     />
                     <button
                       type="button"
                       className="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-lg transition-colors"
+                      aria-label="Add emoji"
                     >
                       <Smile className="w-5 h-5 text-gray-600" />
                     </button>
@@ -523,10 +625,15 @@ const MessagingPage = ({ embedded = false }) => {
                   
                   <button
                     type="submit"
-                    disabled={!newMessage.trim()}
+                    disabled={!newMessage.trim() || sendingMessage}
                     className="px-5 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all font-semibold"
+                    aria-label="Send message"
                   >
-                    <Send className="w-5 h-5" />
+                    {sendingMessage ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Send className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
               </form>
@@ -534,14 +641,14 @@ const MessagingPage = ({ embedded = false }) => {
           ) : (
             /* No conversation selected */
             <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
+              <div className="text-center px-4">
                 <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
                   <MessageCircle className="w-12 h-12 text-purple-600" />
                 </div>
                 <h3 className="text-2xl font-bold mb-3 text-gray-900">
                   Welcome to Messages
                 </h3>
-                <p className="text-gray-500 mb-6 max-w-sm">
+                <p className="text-gray-500 mb-6 max-w-sm mx-auto">
                   Select a conversation from the left or start a new one to begin messaging
                 </p>
                 <button
