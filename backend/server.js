@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
-const { Server } = require('socket.io'); // ← ADD THIS LINE
+const { Server } = require('socket.io');
+const setupSocket = require('./config/socket'); // Import socket setup
 
 // Load environment variables
 dotenv.config();
@@ -11,18 +12,26 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 
-// Socket.IO setup
+// Socket.IO setup with CORS
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173", // ← Better to use env variable
-    methods: ["GET", "POST"]
+    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
+// Setup Socket.IO with authentication
+setupSocket(io);
+
+// Make io accessible to routes
 app.set('io', io);
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:5173",
+  credentials: true
+}));
 app.use(express.json());
 
 // Enhanced MongoDB connection with error handling
@@ -65,33 +74,12 @@ app.use('/api/events', eventRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/user', userRoutes);
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-  console.log('🔌 User connected:', socket.id);
-
-  socket.on('join', (userId) => {
-    socket.join(`user_${userId}`);
-    console.log(`👤 User ${userId} joined their room`);
-  });
-
-  socket.on('newMessage', (data) => {
-    socket.broadcast.emit('newMessage', data);
-  });
-
-  socket.on('eventUpdate', (data) => {
-    io.emit('eventUpdate', data);
-  });
-
-  socket.on('disconnect', () => {
-    console.log('❌ User disconnected:', socket.id);
-  });
-});
-
 // Health check route
 app.get('/api/health', (req, res) => {
   res.json({ 
     message: 'Alumni Platform API is running!',
-    mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
+    mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    socketIO: 'Active'
   });
 });
 
@@ -99,6 +87,6 @@ const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`🔌 Socket.IO enabled`);
+  console.log(`🔌 Socket.IO enabled with authentication`);
   console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
 });

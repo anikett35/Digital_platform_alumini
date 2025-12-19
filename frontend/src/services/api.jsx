@@ -1,8 +1,11 @@
 import axios from 'axios';
 
+// Use environment variable for API URL
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 // Create axios instance
 const API = axios.create({
-  baseURL: 'http://localhost:5000/api',
+  baseURL: `${API_URL}/api`,
   timeout: 10000,
 });
 
@@ -32,6 +35,9 @@ API.interceptors.response.use(
   }
 );
 
+// Export API URL for socket connection
+export { API_URL };
+
 // Auth API functions
 export const authAPI = {
   login: (credentials) => API.post('/auth/login', credentials),
@@ -55,19 +61,12 @@ export const postsAPI = {
   getMyPosts: (params) => API.get('/posts/my-posts', { params }),
 };
 
-// Dashboard API functions
-export const dashboardAPI = {
-  getStats: (role) => API.get(`/dashboard/stats/${role}`),
-  getRecentActivities: () => API.get('/dashboard/activities'),
-  getNotifications: () => API.get('/dashboard/notifications'),
-};
-
-// Alumni API functions
-export const alumniAPI = {
-  getAlumniList: (params) => API.get('/alumni', { params }),
-  getAlumniProfile: (id) => API.get(`/alumni/${id}`),
-  updateAlumniProfile: (id, data) => API.put(`/alumni/${id}`, data),
-  searchAlumni: (query) => API.get(`/alumni/search?q=${query}`),
+// Messages API functions
+export const messagesAPI = {
+  getConversations: () => API.get('/messages/conversations'),
+  getMessages: (conversationId) => API.get(`/messages/${conversationId}`),
+  sendMessage: (conversationId, messageData) => API.post(`/messages/${conversationId}`, messageData),
+  createConversation: (recipientId) => API.post('/messages/conversations', { recipientId }),
 };
 
 // Events API functions
@@ -79,24 +78,6 @@ export const eventsAPI = {
   deleteEvent: (id) => API.delete(`/events/${id}`),
   joinEvent: (id) => API.post(`/events/${id}/join`),
   leaveEvent: (id) => API.post(`/events/${id}/leave`),
-};
-
-// Jobs API functions
-export const jobsAPI = {
-  getAllJobs: (params) => API.get('/jobs', { params }),
-  getJob: (id) => API.get(`/jobs/${id}`),
-  createJob: (jobData) => API.post('/jobs', jobData),
-  updateJob: (id, jobData) => API.put(`/jobs/${id}`, jobData),
-  deleteJob: (id) => API.delete(`/jobs/${id}`),
-  applyJob: (id, applicationData) => API.post(`/jobs/${id}/apply`, applicationData),
-};
-
-// Messages API functions
-export const messagesAPI = {
-  getConversations: () => API.get('/messages/conversations'),
-  getMessages: (conversationId) => API.get(`/messages/${conversationId}`),
-  sendMessage: (conversationId, messageData) => API.post(`/messages/${conversationId}`, messageData),
-  createConversation: (recipientId) => API.post('/messages/conversations', { recipientId }),
 };
 
 export default API;
