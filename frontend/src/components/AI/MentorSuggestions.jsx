@@ -8,8 +8,7 @@ import {
   Award,
   Briefcase
 } from 'lucide-react';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, api } from '../../context/AuthContext'; // Import api
 
 const MentorSuggestions = () => {
   const [suggestions, setSuggestions] = useState([]);
@@ -25,12 +24,17 @@ const MentorSuggestions = () => {
   const fetchSuggestions = async () => {
     try {
       setLoading(true);
-      const { data } = await axios.get('/api/ai-matching/suggestions', {
+      // Use api instance instead of axios
+      const { data } = await api.get('/api/ai-matching/suggestions', {
         params: { limit: 12, minScore: 30 }
       });
       setSuggestions(data.suggestions);
     } catch (error) {
       console.error('Error fetching suggestions:', error);
+      // Show user-friendly error
+      if (error.response?.status === 401) {
+        console.error('Authentication required. Please log in again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -208,7 +212,8 @@ const MentorRequestModal = ({ mentor, onClose, onSuccess }) => {
     setLoading(true);
 
     try {
-      await axios.post('/api/ai-matching/request', {
+      // Use api instance instead of axios
+      await api.post('/api/ai-matching/request', {
         mentorId: mentor._id,
         message: formData.message,
         topic: formData.topic
@@ -218,7 +223,7 @@ const MentorRequestModal = ({ mentor, onClose, onSuccess }) => {
       onSuccess();
     } catch (error) {
       console.error('Error sending request:', error);
-      alert('Failed to send request. Please try again.');
+      alert(error.response?.data?.message || 'Failed to send request. Please try again.');
     } finally {
       setLoading(false);
     }
