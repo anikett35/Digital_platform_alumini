@@ -1,3 +1,7 @@
+
+// frontend/src/components/Dashboard/AlumniDashboard.jsx
+// COMPLETE FIXED VERSION - Uses authenticated API
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { 
   GraduationCap, Users, Briefcase, Calendar, TrendingUp, FileText, MessageCircle, Settings,
@@ -6,16 +10,13 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast, { Toaster } from 'react-hot-toast';
-import axios from 'axios';
 
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, api } from '../../context/AuthContext';
 import PostsPage from '../Posts/PostsPage';
 import SetupProfile from '../AI/SetupProfile';
 import MentorshipDashboard from '../AI/MentorshipDashboard';
 import MessagingPage from '../Messaging/MessagingPage';
 import EventsPage from '../Events/EventsPage';
-
-const API_URL = 'http://localhost:5000/api';
 
 /* ---------- Utilities ---------- */
 const formatDate = (dateString) => {
@@ -60,10 +61,8 @@ const DynamicSearch = ({ onSearch }) => {
       }
       setIsLoading(true);
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(
-          `${API_URL}/search/suggestions?q=${encodeURIComponent(searchQuery)}`,
-          { headers: { Authorization: `Bearer ${token}` } }
+        const res = await api.get(
+          `/api/search/suggestions?q=${encodeURIComponent(searchQuery)}`
         );
         setSuggestions(res.data.suggestions || []);
       } catch {
@@ -398,17 +397,11 @@ const AlumniNavbar = ({
   useEffect(() => {
     const load = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`${API_URL}/notifications`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get('/api/notifications');
         setNotifications(res.data.notifications || []);
       } catch {
-        setNotifications([
-          { id: 1, message: 'New mentorship request from John Doe', read: false, time: '2h ago', type: 'mentorship' },
-          { id: 2, message: 'Tech Talk 2025 starts tomorrow', read: false, time: '5h ago', type: 'event' },
-          { id: 3, message: 'Sarah commented on your post', read: true, time: '1d ago', type: 'post' }
-        ]);
+        // Notifications endpoint doesn't exist - use empty array
+        setNotifications([]);
       }
     };
     load();
@@ -635,127 +628,7 @@ const AlumniNavbar = ({
       </div>
     </nav>
   );
-};
-
-
-
-/* ---------- Enhanced Activity Feed Component ---------- */
-const ActivityFeed = ({ activities }) => {
-  const getActivityIcon = (type) => {
-    const icons = {
-      post: FileText,
-      event: Calendar,
-      mentorship: Users,
-      message: MessageSquare,
-      achievement: Award,
-      connection: Globe
-    };
-    return icons[type] || Activity;
-  };
-
-  const getActivityColor = (type) => {
-    const colors = {
-      post: 'from-purple-500 to-pink-600',
-      event: 'from-blue-500 to-indigo-600',
-      mentorship: 'from-green-500 to-teal-600',
-      message: 'from-orange-500 to-red-600',
-      achievement: 'from-yellow-500 to-orange-600',
-      connection: 'from-cyan-500 to-blue-600'
-    };
-    return colors[type] || 'from-indigo-500 to-purple-600';
-  };
-
-  return (
-    <div className="space-y-3">
-      {activities.length === 0 ? (
-        <div className="text-center py-8">
-          <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">No recent activity</p>
-        </div>
-      ) : (
-        activities.map((activity, i) => {
-          const Icon = getActivityIcon(activity.type);
-          const gradient = getActivityColor(activity.type);
-
-          return (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05 }}
-              whileHover={{ scale: 1.02, x: 5 }}
-              className="flex items-start space-x-4 p-4 bg-white rounded-xl border border-gray-200 hover:shadow-lg transition-all cursor-pointer group"
-            >
-              <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradient} flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform`}>
-                <Icon className="w-6 h-6" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors">
-                  {activity.title}
-                </p>
-                <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                  {activity.description}
-                </p>
-                <div className="flex items-center mt-2 space-x-3">
-                  <span className="text-xs text-gray-500 font-medium flex items-center">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {activity.time}
-                  </span>
-                  {activity.badge && (
-                    <span className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full">
-                      {activity.badge}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all opacity-0 group-hover:opacity-100" />
-            </motion.div>
-          );
-        })
-      )}
-    </div>
-  );
-};
-
-/* ---------- Progress Ring Component ---------- */
-const ProgressRing = ({ percentage, size = 120, strokeWidth = 8, color = 'indigo' }) => {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <div className="relative inline-flex items-center justify-center">
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="none"
-          className="text-gray-200"
-        />
-        <motion.circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="none"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className={`text-${color}-600 transition-all duration-1000`}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-2xl font-bold text-gray-900">{percentage}%</span>
-      </div>
-    </div>
-  );
-};
+}
 
 /* ---------- Overview Tab ---------- */
 const AlumniOverviewTab = ({ onTabChange, onSectionChange, userData }) => {

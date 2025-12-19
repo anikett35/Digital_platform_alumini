@@ -1,7 +1,9 @@
+// frontend/src/components/Mentorship/MentorshipDashboard.jsx
+// COMPLETE FIXED VERSION
+
 import React, { useState, useEffect } from 'react';
 import { Users, Clock, CheckCircle, XCircle, AlertCircle, MessageCircle } from 'lucide-react';
-import axios from 'axios';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth, api } from '../../context/AuthContext'; // Import 'api' from AuthContext
 import { useNavigate } from 'react-router-dom';
 
 const MentorshipDashboard = () => {
@@ -13,7 +15,7 @@ const MentorshipDashboard = () => {
     completed: []
   });
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user } = useAuth(); // No need for token - it's in 'api' instance
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,7 +30,8 @@ const MentorshipDashboard = () => {
 
   const fetchMatches = async () => {
     try {
-      const { data } = await axios.get('/api/ai-matching/status');
+      // Use the configured 'api' instance instead of axios with manual token
+      const { data } = await api.get('/api/ai-matching/status');
       setMatches(data.matches);
     } catch (error) {
       console.error('Error fetching matches:', error);
@@ -39,7 +42,8 @@ const MentorshipDashboard = () => {
 
   const handleRespond = async (matchId, status, responseMessage = '') => {
     try {
-      await axios.post('/api/ai-matching/respond', {
+      // Use the configured 'api' instance
+      await api.post('/api/ai-matching/respond', {
         matchId,
         status,
         responseMessage
@@ -325,21 +329,13 @@ const ActiveMentorshipCard = ({ match, userRole, onMessage }) => {
       </div>
 
       {match.responseMessage && (
-        <div className="mb-4">
+        <div>
           <p className="text-sm font-bold text-gray-700 mb-2">Response:</p>
           <p className="text-gray-700 text-sm bg-green-50 p-3 rounded-lg border border-green-200 leading-relaxed">
             {match.responseMessage}
           </p>
         </div>
       )}
-
-      <button 
-        onClick={handleMessageClick}
-        className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-xl font-bold hover:from-blue-600 hover:to-blue-700 transition-all shadow-md flex items-center justify-center space-x-2"
-      >
-        <MessageCircle className="w-5 h-5" />
-        <span>Message {userRole === 'alumni' ? 'Mentee' : 'Mentor'}</span>
-      </button>
     </div>
   );
 };

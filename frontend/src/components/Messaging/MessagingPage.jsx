@@ -102,6 +102,38 @@ const MessagingPage = ({ embedded = false }) => {
     }
   }, [user, token, selectedConversation, SOCKET_URL]);
 
+  // Listen for conversation selection from other components (e.g., MentorshipDashboard)
+  useEffect(() => {
+    const handleSelectConversation = (event) => {
+      const { conversationId } = event.detail;
+      
+      // Wait a bit for conversations to load if needed
+      const checkAndSelect = () => {
+        const conversation = conversations.find(conv => conv._id === conversationId);
+        if (conversation) {
+          handleConversationSelect(conversation);
+        } else {
+          // If conversation not found, refetch conversations
+          fetchConversations().then(() => {
+            const conv = conversations.find(c => c._id === conversationId);
+            if (conv) {
+              handleConversationSelect(conv);
+            }
+          });
+        }
+      };
+
+      // Delay slightly to ensure state is ready
+      setTimeout(checkAndSelect, 200);
+    };
+
+    window.addEventListener('selectConversation', handleSelectConversation);
+    
+    return () => {
+      window.removeEventListener('selectConversation', handleSelectConversation);
+    };
+  }, [conversations]);
+
   useEffect(() => {
     fetchConversations();
     fetchContacts();
@@ -114,9 +146,11 @@ const MessagingPage = ({ embedded = false }) => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setConversations(response.data.conversations || []);
+      return response.data.conversations || [];
     } catch (error) {
       console.error('Failed to fetch conversations:', error);
       setConversations([]);
+      return [];
     } finally {
       setLoading(false);
     }
@@ -234,7 +268,6 @@ const MessagingPage = ({ embedded = false }) => {
     setNewMessage(failedMessage.content);
     setMessages(prev => prev.filter(msg => msg._id !== messageId));
     
-    // Trigger send message after a brief delay
     setTimeout(() => {
       const sendButton = document.querySelector('button[type="submit"]');
       if (sendButton) sendButton.click();
