@@ -136,8 +136,7 @@ const sendMessage = async (req, res) => {
     }
 
     res.status(201).json({
-      message: 'Message sent successfully',
-      data: message
+      message: message // Changed from 'data' to directly return the message object
     });
 
   } catch (error) {
@@ -146,7 +145,7 @@ const sendMessage = async (req, res) => {
   }
 };
 
-// Create a new conversation
+// Create a new conversation - FIXED VERSION
 const createConversation = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -173,12 +172,25 @@ const createConversation = async (req, res) => {
     const existingConversation = await Conversation.findOne({
       participants: { $all: [req.user.id, participantId], $size: 2 },
       type: 'direct'
-    });
+    }).populate('participants', 'name email role department currentCompany graduationYear');
 
     if (existingConversation) {
-      return res.status(400).json({ 
+      // Format the existing conversation properly
+      const otherParticipants = existingConversation.participants.filter(
+        p => p._id.toString() !== req.user.id
+      );
+      
+      const formattedConversation = {
+        ...existingConversation.toObject(),
+        otherParticipants,
+        participant: otherParticipants[0]
+      };
+
+      // Return 200 with the existing conversation instead of 400 error
+      return res.status(200).json({ 
         message: 'Conversation already exists',
-        conversationId: existingConversation._id
+        conversation: formattedConversation,
+        isExisting: true
       });
     }
 
@@ -197,11 +209,22 @@ const createConversation = async (req, res) => {
     await conversation.save();
     await conversation.populate('participants', 'name email role department currentCompany graduationYear');
 
+    // Format the new conversation
+    const otherParticipants = conversation.participants.filter(
+      p => p._id.toString() !== req.user.id
+    );
+    
+    const formattedConversation = {
+      ...conversation.toObject(),
+      otherParticipants,
+      participant: otherParticipants[0]
+    };
+
     // Emit real-time notification to the other participant
     const io = req.app.get('io');
     if (io) {
       io.to(`user_${participantId}`).emit('newConversation', {
-        conversation,
+        conversation: formattedConversation,
         initiator: {
           _id: req.user.id,
           name: req.user.name,
@@ -212,7 +235,8 @@ const createConversation = async (req, res) => {
 
     res.status(201).json({
       message: 'Conversation created successfully',
-      conversation
+      conversation: formattedConversation,
+      isExisting: false
     });
 
   } catch (error) {

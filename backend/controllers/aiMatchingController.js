@@ -1,4 +1,6 @@
 // backend/controllers/aiMatchingController.js
+// COMPLETE FIXED VERSION WITH BETTER DEBUGGING
+
 const User = require('../models/User');
 const Student = require('../models/Student');
 const Alumni = require('../models/Alumni');
@@ -8,8 +10,8 @@ const MentorshipMatch = require('../models/MentorshipMatch');
 class AIMatchingEngine {
   static calculateArraySimilarity(arr1, arr2) {
     if (!arr1 || !arr2 || arr1.length === 0 || arr2.length === 0) return 0;
-    const set1 = new Set(arr1.map(item => item.toLowerCase()));
-    const set2 = new Set(arr2.map(item => item.toLowerCase()));
+    const set1 = new Set(arr1.map(item => String(item).toLowerCase()));
+    const set2 = new Set(arr2.map(item => String(item).toLowerCase()));
     const intersection = new Set([...set1].filter(x => set2.has(x)));
     const union = new Set([...set1, ...set2]);
     return (intersection.size / union.size) * 100;
@@ -17,8 +19,8 @@ class AIMatchingEngine {
 
   static calculateTextSimilarity(text1, text2) {
     if (!text1 || !text2) return 0;
-    const words1 = text1.toLowerCase().split(/\s+/);
-    const words2 = text2.toLowerCase().split(/\s+/);
+    const words1 = String(text1).toLowerCase().split(/\s+/);
+    const words2 = String(text2).toLowerCase().split(/\s+/);
     return this.calculateArraySimilarity(words1, words2);
   }
 
@@ -74,7 +76,80 @@ class AIMatchingEngine {
   }
 }
 
-// Get user profile (from correct model based on role)
+exports.debugProfiles = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('-password');
+    
+    console.log('=== DEBUG PROFILES ===');
+    console.log('User ID:', userId);
+    console.log('User Role:', user?.role);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    let profile = null;
+    if (user.role === 'student') {
+      profile = await Student.findOne({ userId });
+      console.log('Student Profile:', profile);
+    } else if (user.role === 'alumni') {
+      profile = await Alumni.findOne({ userId });
+      console.log('Alumni Profile:', profile);
+    }
+    
+    const studentCount = await Student.countDocuments();
+    const alumniCount = await Alumni.countDocuments();
+    const availableMentors = await Alumni.countDocuments({ availableAsMentor: true });
+    
+    console.log('Database Stats:');
+    console.log('- Total Students:', studentCount);
+    console.log('- Total Alumni:', alumniCount);
+    console.log('- Available Mentors:', availableMentors);
+    
+    // Get all alumni profiles for debugging
+    const allAlumni = await Alumni.find().populate('userId', 'name email');
+    console.log('All Alumni Profiles:', allAlumni.map(a => ({
+      name: a.fullName,
+      availableAsMentor: a.availableAsMentor,
+      skills: a.skills,
+      company: a.currentCompany
+    })));
+    
+    return res.json({
+      success: true,
+      currentUser: {
+        id: userId,
+        name: user.name,
+        role: user.role,
+        email: user.email
+      },
+      profile: profile,
+      profileExists: !!profile,
+      databaseStats: {
+        totalStudents: studentCount,
+        totalAlumni: alumniCount,
+        availableMentors: availableMentors
+      },
+      allAlumniProfiles: allAlumni.map(a => ({
+        name: a.fullName,
+        email: a.email,
+        availableAsMentor: a.availableAsMentor,
+        skills: a.skills,
+        company: a.currentCompany,
+        mentorshipAreas: a.mentorshipAreas
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Debug error:', error);
+    return res.status(500).json({ 
+      success: false,
+      error: error.message
+    });
+  }
+};
+
 exports.getUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -101,7 +176,6 @@ exports.getUserProfile = async (req, res) => {
   }
 };
 
-// Update user profile (to correct model based on role)
 exports.updateUserProfile = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -113,8 +187,8 @@ exports.updateUserProfile = async (req, res) => {
     }
 
     console.log(`Updating ${user.role} profile for user:`, userId);
+    console.log('Update data:', updateData);
 
-    // Calculate profile strength
     let filledFields = 0;
     const totalFields = 12;
     
@@ -126,13 +200,12 @@ exports.updateUserProfile = async (req, res) => {
     if (updateData.linkedinUrl?.trim()) filledFields++;
     if (updateData.githubUrl?.trim()) filledFields++;
     
-    // Role-specific fields
     if (user.role === 'student') {
       if (updateData.careerGoals?.length > 0) filledFields++;
       if (updateData.industryPreferences?.length > 0) filledFields++;
       if (updateData.currentYear) filledFields++;
       if (updateData.enrollmentYear) filledFields++;
-      if (updateData.department?.trim()) filledFields++;
+      if (user.department) filledFields++;
     } else if (user.role === 'alumni') {
       if (updateData.currentPosition?.trim()) filledFields++;
       if (updateData.currentCompany?.trim()) filledFields++;
@@ -143,8 +216,8 @@ exports.updateUserProfile = async (req, res) => {
     
     const profileStrength = Math.min((filledFields / totalFields) * 100, 100);
     
-    // Prepare profile data
     const profileData = {
+      userId: userId, // CRITICAL: Ensure userId is set
       fullName: user.name,
       email: user.email,
       bio: updateData.bio,
@@ -162,41 +235,41 @@ exports.updateUserProfile = async (req, res) => {
     let profile;
     
     if (user.role === 'student') {
-      // Student-specific fields
       profileData.currentYear = updateData.currentYear;
       profileData.enrollmentYear = updateData.enrollmentYear;
-      profileData.department = updateData.department || user.department;
+      profileData.department = user.department; // Use department from User model
       profileData.careerGoals = updateData.careerGoals;
       profileData.industryPreferences = updateData.industryPreferences;
       profileData.lookingForMentor = updateData.lookingForMentor;
       
-      // Update or create Student profile
       profile = await Student.findOneAndUpdate(
         { userId },
         { $set: profileData },
         { new: true, upsert: true, runValidators: true }
       );
       
+      console.log('Student profile updated:', profile);
+      
     } else if (user.role === 'alumni') {
-      // Alumni-specific fields
       profileData.currentPosition = updateData.currentPosition;
       profileData.currentCompany = updateData.currentCompany;
       profileData.industry = updateData.industry;
       profileData.graduationYear = updateData.graduationYear;
-      profileData.department = updateData.department || user.department;
+      profileData.department = user.department; // Use department from User model
       profileData.availableAsMentor = updateData.availableAsMentor;
       profileData.mentorshipAreas = updateData.mentorshipAreas;
       profileData.yearsOfExperience = updateData.yearsOfExperience;
       
-      // Update or create Alumni profile
       profile = await Alumni.findOneAndUpdate(
         { userId },
         { $set: profileData },
         { new: true, upsert: true, runValidators: true }
       );
+      
+      console.log('Alumni profile updated:', profile);
     }
     
-    // Also update basic fields in User model
+    // Update User model
     user.profileStrength = profileStrength;
     user.profileComplete = profileStrength >= 70;
     user.lastProfileUpdate = new Date();
@@ -226,14 +299,17 @@ exports.updateUserProfile = async (req, res) => {
   }
 };
 
-// Get AI mentor suggestions
 exports.getAIMentorSuggestions = async (req, res) => {
   try {
     const studentUserId = req.user.id;
-    const { limit = 10, minScore = 40 } = req.query;
+    const { limit = 10, minScore = 30 } = req.query; // Lowered minScore to 30
 
-    // Get student profile
+    console.log('=== AI MENTOR SUGGESTIONS ===');
+    console.log('Student User ID:', studentUserId);
+
     const studentProfile = await Student.findOne({ userId: studentUserId });
+    console.log('Student Profile Found:', !!studentProfile);
+    
     if (!studentProfile) {
       return res.status(400).json({ 
         success: false, 
@@ -241,18 +317,37 @@ exports.getAIMentorSuggestions = async (req, res) => {
       });
     }
 
-    // Get available mentors
+    console.log('Student Skills:', studentProfile.skills);
+    console.log('Student Interests:', studentProfile.interests);
+    console.log('Student Career Goals:', studentProfile.careerGoals);
+
+    // Find all alumni who are available as mentors
     const alumniProfiles = await Alumni.find({
       availableAsMentor: true,
       userId: { $ne: studentUserId }
     }).populate('userId', 'name email');
 
-    // Calculate match scores
+    console.log('Found Alumni Profiles:', alumniProfiles.length);
+    
+    if (alumniProfiles.length === 0) {
+      return res.json({
+        success: true,
+        message: 'No mentors available yet. Please check back later.',
+        suggestions: [],
+        totalFound: 0
+      });
+    }
+
     const matches = alumniProfiles.map(alumniProfile => {
       const { finalScore, breakdown } = AIMatchingEngine.calculateMatchScore(
         studentProfile, 
         alumniProfile
       );
+      
+      console.log(`Match with ${alumniProfile.fullName}:`, {
+        score: finalScore,
+        breakdown
+      });
       
       return {
         mentor: {
@@ -264,20 +359,22 @@ exports.getAIMentorSuggestions = async (req, res) => {
           department: alumniProfile.department,
           skills: alumniProfile.skills,
           mentorshipAreas: alumniProfile.mentorshipAreas,
-          profileHeadline: alumniProfile.profileHeadline
+          profileHeadline: alumniProfile.profileHeadline,
+          yearsOfExperience: alumniProfile.yearsOfExperience
         },
         matchScore: finalScore,
         matchFactors: breakdown
       };
     });
 
-    // Filter and sort
     const filteredMatches = matches
       .filter(m => m.matchScore >= minScore)
       .sort((a, b) => b.matchScore - a.matchScore)
       .slice(0, parseInt(limit));
 
-    // Save suggested matches
+    console.log('Filtered Matches:', filteredMatches.length);
+
+    // Save suggestions to database
     await Promise.all(filteredMatches.map(async match => {
       const existing = await MentorshipMatch.findOne({ 
         student: studentUserId, 
@@ -298,7 +395,7 @@ exports.getAIMentorSuggestions = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'AI mentor suggestions generated successfully',
+      message: `Found ${filteredMatches.length} mentor suggestions`,
       suggestions: filteredMatches,
       totalFound: filteredMatches.length
     });
@@ -313,7 +410,6 @@ exports.getAIMentorSuggestions = async (req, res) => {
   }
 };
 
-// Send mentorship request
 exports.sendMentorshipRequest = async (req, res) => {
   try {
     const studentId = req.user.id;
@@ -363,7 +459,6 @@ exports.sendMentorshipRequest = async (req, res) => {
   }
 };
 
-// Respond to mentorship request
 exports.respondToMentorshipRequest = async (req, res) => {
   try {
     const mentorId = req.user.id;
@@ -405,7 +500,6 @@ exports.respondToMentorshipRequest = async (req, res) => {
   }
 };
 
-// Get mentorship status
 exports.getMentorshipStatus = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -443,7 +537,6 @@ exports.getMentorshipStatus = async (req, res) => {
   }
 };
 
-// Profile status
 exports.getProfileStatus = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -470,10 +563,8 @@ exports.getProfileStatus = async (req, res) => {
   }
 };
 
-// Alias
 exports.updateMatchingProfile = exports.updateUserProfile;
 
-// Analytics
 exports.getMatchingAnalytics = async (req, res) => {
   try {
     const totalMatches = await MentorshipMatch.countDocuments();
