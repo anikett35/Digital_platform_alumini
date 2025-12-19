@@ -4,56 +4,69 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const http = require('http');
 const { Server } = require('socket.io');
-const setupSocket = require('./config/socket'); // Import socket setup
+const setupSocket = require('./config/socket');
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-// Socket.IO setup with CORS
+// Allowed origins for CORS
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://digital-platform-alumini.vercel.app',
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
+
+// CORS configuration - MUST be before routes
+app.use(cors({
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS']
+}));
+
+app.use(express.json());
+
+// Socket.IO setup
 const io = new Server(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
 });
 
-// Setup Socket.IO with authentication
 setupSocket(io);
-
-// Make io accessible to routes
 app.set('io', io);
 
-// Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:5173",
-  credentials: true
-}));
-app.use(express.json());
-
-// Enhanced MongoDB connection with error handling
+// MongoDB connection
 const connectDB = async () => {
   try {
-    const options = {
+    await mongoose.connect(process.env.MONGODB_URI, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
-    };
-
-    await mongoose.connect(process.env.MONGODB_URI, options);
+    });
     console.log('✅ MongoDB connected successfully');
   } catch (error) {
     console.error('❌ MongoDB connection error:', error.message);
-    console.log('⏳ Retrying in 5 seconds...');
     setTimeout(connectDB, 5000);
   }
 };
 
-// Connect to MongoDB
 connectDB();
 
 // Import routes
@@ -74,19 +87,20 @@ app.use('/api/events', eventRoutes);
 app.use('/api/profiles', profileRoutes);
 app.use('/api/user', userRoutes);
 
-// Health check route
+// Health check
 app.get('/api/health', (req, res) => {
   res.json({ 
     message: 'Alumni Platform API is running!',
     mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
-    socketIO: 'Active'
+    socketIO: 'Active',
+    allowedOrigins: allowedOrigins
   });
 });
 
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
-  console.log(`🔌 Socket.IO enabled with authentication`);
-  console.log(`📡 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🔌 Socket.IO enabled`);
+  console.log(`📡 Health: http://localhost:${PORT}/api/health`);
 });
