@@ -1,7 +1,9 @@
+// backend/models/User.js
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
+  // Basic Information
   name: {
     type: String,
     required: true,
@@ -24,6 +26,18 @@ const userSchema = new mongoose.Schema({
     enum: ['student', 'alumni', 'admin'],
     required: true
   },
+  
+  // Contact Information
+  phoneNumber: {
+    type: String,
+    trim: true
+  },
+  location: {
+    type: String,
+    trim: true
+  },
+  
+  // Academic Information
   studentId: {
     type: String,
     sparse: true,
@@ -34,11 +48,8 @@ const userSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  phoneNumber: {
-    type: String,
-    trim: true
-  },
-  // Student specific fields
+  
+  // Student Specific Fields
   currentYear: {
     type: Number,
     min: 1,
@@ -47,7 +58,8 @@ const userSchema = new mongoose.Schema({
   enrollmentYear: {
     type: Number
   },
-  // Alumni specific fields
+  
+  // Alumni Specific Fields
   graduationYear: {
     type: Number
   },
@@ -59,10 +71,20 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
-  // Profile fields
+  industry: {
+    type: String,
+    trim: true
+  },
+  
+  // Profile Information
   bio: {
     type: String,
     maxlength: 500
+  },
+  profileHeadline: {
+    type: String,
+    default: '',
+    maxlength: 200
   },
   skills: [{
     type: String,
@@ -72,6 +94,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   }],
+  
+  // Social Links
   linkedinUrl: {
     type: String,
     trim: true
@@ -80,13 +104,21 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  website: {
+    type: String,
+    trim: true
+  },
+  
+  // Media
   profileImage: {
     type: String,
     trim: true,
     default: ''
   },
-  
-  // NEW: Photo gallery fields
+  coverPhoto: {
+    type: String,
+    trim: true
+  },
   photoGallery: [{
     url: {
       type: String,
@@ -102,36 +134,7 @@ const userSchema = new mongoose.Schema({
     }
   }],
   
-  coverPhoto: {
-    type: String,
-    trim: true
-  },
-  
-  // Profile visibility and preferences
-  isActive: {
-    type: Boolean,
-    default: true
-  },
-  lastLogin: {
-    type: Date
-  },
-  
-  // AI Matching fields
-  profileHeadline: {
-    type: String,
-    default: '',
-    maxlength: 200
-  },
-  industry: {
-    type: String,
-    trim: true
-  },
-  location: {
-    type: String,
-    trim: true
-  },
-  
-  // Career history
+  // Work Experience
   workExperience: [{
     company: {
       type: String,
@@ -164,7 +167,7 @@ const userSchema = new mongoose.Schema({
     }
   }],
   
-  // Education history
+  // Education History
   education: [{
     institution: {
       type: String,
@@ -191,27 +194,11 @@ const userSchema = new mongoose.Schema({
     }
   }],
   
-  // Additional links
-  website: {
-    type: String,
-    trim: true
-  },
-  
-  // Mentorship settings
+  // Mentorship
   isOpenToMentorship: {
     type: Boolean,
     default: false
   },
-  
-  // AI Matching preferences
-  careerGoals: [{
-    type: String,
-    trim: true
-  }],
-  industryPreferences: [{
-    type: String,
-    trim: true
-  }],
   lookingForMentor: {
     type: Boolean,
     default: false
@@ -225,10 +212,43 @@ const userSchema = new mongoose.Schema({
     trim: true
   }],
   
+  // Career Goals & Preferences
+  careerGoals: [{
+    type: String,
+    trim: true
+  }],
+  industryPreferences: [{
+    type: String,
+    trim: true
+  }],
+  
+  // Profile Status
+  isActive: {
+    type: Boolean,
+    default: true
+  },
   profileVisibility: {
     type: String,
     enum: ['public', 'connections', 'private'],
     default: 'public'
+  },
+  profileStrength: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 100
+  },
+  profileComplete: {
+    type: Boolean,
+    default: false
+  },
+  
+  // Timestamps
+  lastLogin: {
+    type: Date
+  },
+  lastProfileUpdate: {
+    type: Date
   }
 }, {
   timestamps: true
@@ -252,6 +272,42 @@ userSchema.pre('save', async function(next) {
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Method to calculate profile strength
+userSchema.methods.calculateProfileStrength = function() {
+  let filledFields = 0;
+  const totalFields = 15;
+  
+  // Basic fields
+  if (this.bio?.trim()) filledFields++;
+  if (this.skills?.length > 0) filledFields++;
+  if (this.interests?.length > 0) filledFields++;
+  if (this.location?.trim()) filledFields++;
+  if (this.profileHeadline?.trim()) filledFields++;
+  if (this.linkedinUrl?.trim()) filledFields++;
+  if (this.githubUrl?.trim()) filledFields++;
+  if (this.profileImage?.trim()) filledFields++;
+  if (this.phoneNumber?.trim()) filledFields++;
+  
+  // Role-specific fields
+  if (this.role === 'student') {
+    if (this.careerGoals?.length > 0) filledFields++;
+    if (this.industryPreferences?.length > 0) filledFields++;
+    if (this.currentYear) filledFields++;
+    if (this.enrollmentYear) filledFields++;
+    if (this.department?.trim()) filledFields++;
+    if (this.education?.length > 0) filledFields++;
+  } else if (this.role === 'alumni') {
+    if (this.currentPosition?.trim()) filledFields++;
+    if (this.currentCompany?.trim()) filledFields++;
+    if (this.industry?.trim()) filledFields++;
+    if (this.graduationYear) filledFields++;
+    if (this.mentorshipAreas?.length > 0) filledFields++;
+    if (this.workExperience?.length > 0) filledFields++;
+  }
+  
+  return Math.round(Math.min((filledFields / totalFields) * 100, 100));
 };
 
 // Remove password from JSON response

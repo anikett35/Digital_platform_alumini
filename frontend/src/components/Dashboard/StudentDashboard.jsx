@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Brain, Users, Settings, User, Calendar, Briefcase, BookOpen, MessageCircle, FileText,
+  Brain, Users, Settings, User, Calendar, MessageCircle, FileText,
   AlertCircle, RefreshCw, Bell, Search, LogOut, Menu, X, Home, GraduationCap,
   MessageSquare, TrendingUp, Award, Target, Sparkles, ArrowRight, Clock, MapPin,
-  Maximize2, Plus, UserCircle
+  Maximize2, UserCircle, Loader, Activity, BarChart3, Send, BookOpen
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import MentorSuggestions from '../AI/MentorSuggestions';
@@ -15,20 +15,21 @@ import MessagingPage from '../Messaging/MessagingPage';
 import EventsPage from '../Events/EventsPage';
 import Chatbot from '../Common/Chatbot';
 import ProfilesList from '../Profiles/ProfilesList';
-import AlumniProfilePage from '../Profiles/AlumniProfilePage';
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api';
 
-// --- CONFIGURATION ---
-const PRIMARY_COLOR_HEX = '#0A74DA';
-const ACCENT_COLOR_HEX = '#00C49F';
-const PRIMARY_TW_COLOR = 'blue';
-const ACCENT_TW_COLOR = 'teal';
-
-const PRIMARY_GRADIENT = `from-${PRIMARY_TW_COLOR}-600 to-${PRIMARY_TW_COLOR}-700`;
-const ACCENT_GRADIENT = `from-${ACCENT_TW_COLOR}-500 to-${ACCENT_TW_COLOR}-600`;
-const WELCOME_GRADIENT = 'from-blue-600 via-indigo-600 to-purple-600';
+// Professional Purple Color Scheme (from reference image)
+const COLORS = {
+  primary: '#6366F1',        // Indigo/Purple
+  primaryLight: '#818CF8',   // Light Purple
+  primaryDark: '#4F46E5',    // Dark Purple
+  accent: '#EC4899',         // Pink accent
+  success: '#10B981',        // Green
+  error: '#EF4444',          // Red
+  background: '#F9FAFB',     // Light gray background
+  cardBg: '#FFFFFF'          // White card background
+};
 
 const debug = (component, message, data = null) => {
   if (process.env.NODE_ENV === 'development') {
@@ -36,20 +37,29 @@ const debug = (component, message, data = null) => {
   }
 };
 
-// --- StudentNavbar Component ---
-const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+// Helper function
+const getTimeAgo = (date) => {
+  if (!date) return 'recently';
+  const now = new Date();
+  const past = new Date(date);
+  const diffMs = now - past;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins} min${diffMins !== 1 ? 's' : ''} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+  return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+};
+
+// ==================== NAVBAR COMPONENT ====================
+const StudentNavbar = ({ activeTab, onTabChange, onLogout, user, notificationCount = 0 }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const studentTabs = [
     { id: 'overview', name: 'Dashboard', icon: Home },
-    { id: 'alumni', name: 'Alumni Directory', icon: UserCircle },
+    { id: 'alumni', name: 'Alumni', icon: UserCircle },
     { id: 'ai-matching', name: 'AI Match', icon: Brain },
     { id: 'my-mentorships', name: 'Mentorships', icon: Users },
     { id: 'events', name: 'Events', icon: Calendar },
@@ -64,88 +74,122 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   };
 
   return (
-    <nav className={`sticky top-0 z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-white/95 backdrop-blur-lg shadow-xl' : 'bg-white shadow-md'
-    }`}>
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 lg:h-20">
-          <div className="flex items-center space-x-3 cursor-pointer">
-            <div className={`w-10 h-10 lg:w-12 lg:h-12 bg-gradient-to-br ${WELCOME_GRADIENT} rounded-xl flex items-center justify-center shadow-lg`}>
-              <GraduationCap className="w-5 h-5 lg:w-6 lg:h-6 text-white" />
+    <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <div className="max-w-full mx-auto px-6">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <div className="flex items-center space-x-3">
+            <div 
+              className="w-11 h-11 rounded-xl flex items-center justify-center shadow-md"
+              style={{ 
+                background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryLight})` 
+              }}
+            >
+              <GraduationCap className="w-6 h-6 text-white" />
             </div>
-            <div className="hidden sm:block">
-              <h1 className={`text-xl lg:text-2xl font-extrabold bg-gradient-to-r ${WELCOME_GRADIENT} bg-clip-text text-transparent`}>
+            <div>
+              <h1 
+                className="text-xl font-bold"
+                style={{ color: COLORS.primary }}
+              >
                 AlumniConnect
               </h1>
               <p className="text-xs text-gray-500">Welcome, {user?.name?.split(' ')[0] || 'User'}</p>
             </div>
           </div>
 
-          <div className="hidden lg:flex items-center space-x-1 bg-gray-50 rounded-full p-1.5 shadow-inner border border-gray-100">
+          {/* Desktop Navigation */}
+          <div className="hidden lg:flex items-center space-x-1">
             {studentTabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              const activeClass = `bg-white shadow-lg text-${PRIMARY_TW_COLOR}-600 ring-2 ring-${PRIMARY_TW_COLOR}-100`;
               
               return (
                 <button
                   key={tab.id}
                   onClick={() => handleTabClick(tab.id)}
-                  className={`relative flex items-center space-x-2 px-5 py-2 rounded-full font-medium transition-all duration-200 text-sm ${
-                    isActive
-                      ? activeClass
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                  className={`relative flex items-center space-x-2 px-4 py-2.5 rounded-lg font-medium transition-all duration-200 text-sm ${
+                    isActive 
+                      ? 'text-white shadow-md' 
+                      : 'text-gray-600 hover:bg-purple-50 hover:text-purple-700'
                   }`}
+                  style={isActive ? { 
+                    background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryLight})` 
+                  } : {}}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? `text-${PRIMARY_TW_COLOR}-600` : ''}`} />
+                  <Icon className="w-4 h-4" />
                   <span>{tab.name}</span>
+                  {tab.id === 'messages' && notificationCount > 0 && (
+                    <span 
+                      className="absolute -top-1 -right-1 w-5 h-5 rounded-full text-xs font-bold text-white flex items-center justify-center"
+                      style={{ backgroundColor: COLORS.error }}
+                    >
+                      {notificationCount > 9 ? '9+' : notificationCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
 
-          <div className="flex items-center space-x-2 lg:space-x-3">
-            <div className="hidden md:block relative">
-              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+          {/* Right Actions */}
+          <div className="flex items-center space-x-3">
+            {/* Search */}
+            <div className="hidden md:flex items-center bg-gray-100 rounded-lg px-3 py-2">
+              <Search className="w-4 h-4 text-gray-400 mr-2" />
               <input
                 type="text"
                 placeholder="Search..."
-                className={`pl-10 pr-4 py-2 border border-gray-200 rounded-full focus:ring-2 focus:ring-offset-1 focus:ring-${PRIMARY_TW_COLOR}-300 focus:border-${PRIMARY_TW_COLOR}-400 w-48 lg:w-64 transition-all duration-200 text-sm`}
+                className="bg-transparent border-none outline-none text-sm w-40 placeholder-gray-400"
               />
             </div>
 
-            <button className={`relative p-2 lg:p-2.5 rounded-full hover:bg-gray-100 transition-all duration-200 group border border-transparent hover:border-gray-200`}>
-              <Bell className={`w-5 h-5 text-gray-600 group-hover:text-${PRIMARY_TW_COLOR}-600 transition-colors`} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+            {/* Notifications */}
+            <button className="relative p-2 rounded-lg hover:bg-purple-50 transition-all">
+              <Bell className="w-5 h-5 text-gray-600" />
+              {notificationCount > 0 && (
+                <span 
+                  className="absolute top-1 right-1 w-2 h-2 rounded-full"
+                  style={{ backgroundColor: COLORS.error }}
+                ></span>
+              )}
             </button>
 
-            <div className="group relative">
-              <div className={`w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-${PRIMARY_TW_COLOR}-600 to-${ACCENT_TW_COLOR}-500 rounded-full flex items-center justify-center shadow-md cursor-pointer`}>
-                <span className="text-white text-base font-semibold">
-                  {user?.name?.charAt(0) || 'S'}
-                </span>
-              </div>
+            {/* User Avatar */}
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center shadow-md cursor-pointer ring-2 ring-purple-200"
+              style={{ 
+                background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.accent})` 
+              }}
+            >
+              <span className="text-white text-sm font-semibold">
+                {user?.name?.charAt(0)?.toUpperCase() || 'S'}
+              </span>
             </div>
 
+            {/* Logout */}
             <button
               onClick={onLogout}
-              className="hidden sm:block p-2 lg:p-2.5 rounded-full hover:bg-red-50 text-red-600 transition-all duration-200 hover:shadow-md"
+              className="hidden sm:flex items-center space-x-1 px-3 py-2 rounded-lg hover:bg-red-50 text-red-600 transition-all text-sm font-medium"
               title="Logout"
             >
-              <LogOut className="w-5 h-5" />
+              <LogOut className="w-4 h-4" />
+              <span>Logout</span>
             </button>
 
+            {/* Mobile Menu */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 rounded-full hover:bg-gray-100 transition-all duration-200"
+              className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
             >
-              {isMobileMenuOpen ? <X className="w-5 h-5 text-gray-700" /> : <Menu className="w-5 h-5 text-gray-700" />}
+              {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>
 
+        {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="lg:hidden border-t border-gray-100 py-4">
+          <div className="lg:hidden border-t border-gray-200 py-4">
             <div className="space-y-1">
               {studentTabs.map((tab) => {
                 const Icon = tab.icon;
@@ -155,25 +199,19 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
                   <button
                     key={tab.id}
                     onClick={() => handleTabClick(tab.id)}
-                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium transition-all duration-200 ${
-                      isActive
-                        ? `bg-${PRIMARY_TW_COLOR}-50 text-${PRIMARY_TW_COLOR}-700 border border-${PRIMARY_TW_COLOR}-200 shadow-sm`
-                        : 'text-gray-600 hover:bg-gray-50'
+                    className={`flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium transition-all ${
+                      isActive ? 'bg-purple-50' : 'text-gray-600 hover:bg-gray-50'
                     }`}
+                    style={isActive ? { 
+                      borderLeft: `4px solid ${COLORS.primary}`,
+                      color: COLORS.primary 
+                    } : {}}
                   >
                     <Icon className="w-5 h-5" />
                     <span>{tab.name}</span>
-                    {isActive && <ArrowRight className="w-4 h-4 ml-auto" />}
                   </button>
                 );
               })}
-              <button
-                onClick={onLogout}
-                className="flex items-center space-x-3 w-full px-4 py-3 rounded-xl font-medium text-red-600 hover:bg-red-50 transition-all duration-200 mt-4 border-t border-gray-100 pt-4"
-              >
-                <LogOut className="w-5 h-5" />
-                <span>Logout</span>
-              </button>
             </div>
           </div>
         )}
@@ -182,112 +220,558 @@ const StudentNavbar = ({ activeTab, onTabChange, onLogout, user }) => {
   );
 };
 
+// ==================== OVERVIEW TAB COMPONENT ====================
+const OverviewTab = ({ dashboardData, onTabChange, loading, onRefresh }) => {
+  const { user } = useAuth();
+  const firstName = user?.name?.split(' ')[0] || 'Student';
+
+  const statsConfig = [
+    {
+      id: 'connections',
+      name: 'Alumni Connections',
+      value: dashboardData.stats.connections,
+      icon: Users,
+      color: COLORS.primary,
+      bgColor: '#EEF2FF'
+    },
+    {
+      id: 'posts',
+      name: 'Community Posts',
+      value: dashboardData.stats.posts,
+      icon: MessageCircle,
+      color: COLORS.accent,
+      bgColor: '#FCE7F3'
+    },
+    {
+      id: 'mentorships',
+      name: 'Active Mentors',
+      value: dashboardData.stats.mentorships,
+      icon: Award,
+      color: '#8B5CF6',
+      bgColor: '#F3E8FF'
+    },
+    {
+      id: 'events',
+      name: 'Upcoming Events',
+      value: dashboardData.stats.events,
+      icon: Calendar,
+      color: '#3B82F6',
+      bgColor: '#DBEAFE'
+    }
+  ];
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Welcome Banner */}
+      <div 
+        className="relative overflow-hidden rounded-2xl shadow-lg p-10"
+        style={{ 
+          background: `linear-gradient(135deg, ${COLORS.primary} 0%, ${COLORS.primaryLight} 50%, ${COLORS.accent} 100%)` 
+        }}
+      >
+        <div className="absolute inset-0 bg-black/5"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -mr-48 -mt-48 blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/5 rounded-full -ml-32 -mb-32 blur-2xl"></div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="flex items-center space-x-2 mb-3">
+                <Sparkles className="w-5 h-5 text-yellow-200 animate-pulse" />
+                <span className="text-white/90 text-sm font-semibold tracking-wide uppercase">Your Dashboard</span>
+              </div>
+              <h1 className="text-5xl font-extrabold text-white mb-3">
+                Hello, {firstName}! 👋
+              </h1>
+              <p className="text-white/90 text-lg max-w-2xl">
+                Stay connected with your alumni network and track your progress
+              </p>
+            </div>
+            <button
+              onClick={onRefresh}
+              disabled={loading}
+              className="hidden md:flex items-center space-x-2 px-5 py-3 bg-white/20 backdrop-blur-md text-white rounded-xl hover:bg-white/30 transition-all disabled:opacity-50 font-medium shadow-lg"
+            >
+              <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {statsConfig.map((stat) => {
+          const Icon = stat.icon;
+          
+          return (
+            <div 
+              key={stat.id}
+              className="bg-white rounded-2xl shadow-md hover:shadow-xl p-6 border border-gray-100 transform hover:-translate-y-1 transition-all duration-300 cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div 
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg"
+                  style={{ backgroundColor: stat.color }}
+                >
+                  <Icon className="w-8 h-8 text-white" />
+                </div>
+                <div className="flex items-center space-x-1 text-green-500">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="text-xs font-semibold">+12%</span>
+                </div>
+              </div>
+              <p className="text-sm font-medium text-gray-500 mb-2">{stat.name}</p>
+              <p className="text-4xl font-extrabold text-gray-900">{stat.value}</p>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Activities */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+            <div className="flex items-center space-x-3">
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: `${COLORS.primary}15` }}
+              >
+                <Activity className="w-5 h-5" style={{ color: COLORS.primary }} />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">Recent Activity</h2>
+            </div>
+            <button 
+              onClick={() => onTabChange('messages')}
+              className="text-sm font-semibold flex items-center space-x-1 hover:underline transition-all"
+              style={{ color: COLORS.primary }}
+            >
+              <span>View All</span>
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+          
+          <div className="space-y-3">
+            {dashboardData.recentActivities.length === 0 ? (
+              <div className="text-center py-16">
+                <div 
+                  className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: `${COLORS.primary}10` }}
+                >
+                  <MessageCircle className="w-10 h-10 text-gray-300" />
+                </div>
+                <p className="text-gray-500 text-lg font-medium">No recent activities</p>
+                <p className="text-gray-400 text-sm mt-1">Your activities will appear here</p>
+              </div>
+            ) : (
+              dashboardData.recentActivities.map((activity) => {
+                const Icon = activity.icon;
+                return (
+                  <div 
+                    key={activity.id} 
+                    className="flex items-center space-x-4 p-4 rounded-xl transition-all cursor-pointer group hover:shadow-md"
+                    style={{ backgroundColor: `${COLORS.primary}05` }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = `${COLORS.primary}10`}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = `${COLORS.primary}05`}
+                  >
+                    <div 
+                      className="w-12 h-12 rounded-full flex items-center justify-center shadow-md flex-shrink-0"
+                      style={{ 
+                        background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryLight})` 
+                      }}
+                    >
+                      <span className="text-white text-base font-bold">{activity.avatar}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-base font-semibold text-gray-900 line-clamp-1 mb-1">
+                        {activity.message}
+                      </p>
+                      <p className="text-sm text-gray-500 flex items-center space-x-1">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span>{activity.time}</span>
+                      </p>
+                    </div>
+                    <ArrowRight 
+                      className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity" 
+                      style={{ color: COLORS.primary }}
+                    />
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Upcoming Events */}
+        <div className="lg:col-span-1 bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+          <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+            <div className="flex items-center space-x-3">
+              <div 
+                className="w-10 h-10 rounded-xl flex items-center justify-center"
+                style={{ backgroundColor: `${COLORS.primary}15` }}
+              >
+                <Calendar className="w-5 h-5" style={{ color: COLORS.primary }} />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900">Events</h2>
+            </div>
+            <button onClick={() => onTabChange('events')}>
+              <Maximize2 className="w-5 h-5 text-gray-400 hover:text-gray-700 transition-colors" />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            {dashboardData.upcomingEvents.length === 0 ? (
+              <div className="text-center py-12">
+                <div 
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3"
+                  style={{ backgroundColor: `${COLORS.primary}10` }}
+                >
+                  <Calendar className="w-8 h-8 text-gray-300" />
+                </div>
+                <p className="text-gray-500 text-sm font-medium">No upcoming events</p>
+              </div>
+            ) : (
+              dashboardData.upcomingEvents.map((event) => (
+                <div 
+                  key={event._id} 
+                  className="border-l-4 pl-4 pr-3 py-4 rounded-r-xl cursor-pointer hover:shadow-lg transition-all group"
+                  style={{ 
+                    borderLeftColor: COLORS.primary,
+                    backgroundColor: `${COLORS.primary}08`
+                  }}
+                  onClick={() => onTabChange('events')}
+                >
+                  <h3 className="font-bold text-gray-900 text-base mb-3 line-clamp-2 group-hover:underline">
+                    {event.title}
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <p className="text-gray-700 flex items-center space-x-2">
+                      <Calendar className="w-4 h-4" style={{ color: COLORS.primary }} />
+                      <span className="font-semibold">{formatDate(event.date)}</span>
+                      <span className="text-gray-500">• {event.time}</span>
+                    </p>
+                    <p className="text-gray-600 flex items-center space-x-2">
+                      <MapPin className="w-4 h-4 text-gray-400" />
+                      <span className="line-clamp-1">{event.location}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-gray-200">
+                    <span 
+                      className="text-xs font-bold px-3 py-1.5 rounded-full text-white"
+                      style={{ backgroundColor: COLORS.primary }}
+                    >
+                      {event.type}
+                    </span>
+                    <span className="text-sm text-gray-600 flex items-center space-x-1 font-medium">
+                      <Users className="w-4 h-4" />
+                      <span>{event.attendees?.filter(a => a.status === 'registered').length || 0} attending</span>
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          
+          <button 
+            onClick={() => onTabChange('events')}
+            className="w-full mt-6 py-3.5 text-white rounded-xl font-bold hover:shadow-xl transform hover:scale-[1.02] transition-all flex items-center justify-center space-x-2 text-base"
+            style={{ 
+              background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryLight})` 
+            }}
+          >
+            <Calendar className="w-5 h-5" />
+            <span>View All Events</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
+        <div className="flex items-center space-x-3 mb-6 pb-4 border-b border-gray-100">
+          <div 
+            className="w-10 h-10 rounded-xl flex items-center justify-center shadow-md"
+            style={{ 
+              background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryLight})` 
+            }}
+          >
+            <Target className="w-5 h-5 text-white" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900">Quick Actions</h2>
+        </div>
+        
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <QuickActionButton 
+            icon={UserCircle} 
+            label="Alumni Directory" 
+            onClick={() => onTabChange('alumni')}
+            color={COLORS.primary}
+          />
+          <QuickActionButton 
+            icon={FileText} 
+            label="Community" 
+            onClick={() => onTabChange('posts')}
+            color={COLORS.accent}
+          />
+          <QuickActionButton 
+            icon={Brain} 
+            label="AI Match" 
+            onClick={() => onTabChange('ai-matching')}
+            color="#8B5CF6"
+          />
+          <QuickActionButton 
+            icon={Calendar} 
+            label="Events" 
+            onClick={() => onTabChange('events')}
+            color="#3B82F6"
+          />
+          <QuickActionButton 
+            icon={MessageSquare} 
+            label="Messages" 
+            onClick={() => onTabChange('messages')}
+            color={COLORS.primary}
+          />
+          <QuickActionButton 
+            icon={Settings} 
+            label="Profile Setup" 
+            onClick={() => onTabChange('setup-profile')}
+            color="#10B981"
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ==================== QUICK ACTION BUTTON ====================
+const QuickActionButton = ({ icon: Icon, label, onClick, color }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <button 
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="flex flex-col items-center space-y-3 bg-white rounded-2xl p-5 border-2 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2"
+      style={{ 
+        borderColor: isHovered ? color : '#E5E7EB',
+        backgroundColor: isHovered ? `${color}05` : 'white'
+      }}
+    >
+      <div 
+        className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all duration-300"
+        style={{ backgroundColor: color }}
+      >
+        <Icon className="w-8 h-8 text-white" />
+      </div>
+      <span className="text-sm font-bold text-gray-900 text-center leading-tight">
+        {label}
+      </span>
+    </button>
+  );
+};
+
+// ==================== TAB CONTENT WRAPPER ====================
+const TabContentWrapper = ({ title, children, icon: Icon }) => (
+  <div className="min-h-[calc(100vh-5rem)] bg-white rounded-2xl shadow-lg p-8 border border-gray-100">
+    <div className="flex items-center space-x-3 mb-8 pb-4 border-b border-gray-200">
+      {Icon && (
+        <div 
+          className="w-12 h-12 rounded-xl flex items-center justify-center"
+          style={{ backgroundColor: `${COLORS.primary}15` }}
+        >
+          <Icon className="w-6 h-6" style={{ color: COLORS.primary }} />
+        </div>
+      )}
+      <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
+    </div>
+    <div className="space-y-6">
+      {children}
+    </div>
+  </div>
+);
+
+// ==================== ERROR FALLBACK ====================
+const ErrorFallback = ({ error, onRetry }) => (
+  <div className="flex items-center justify-center py-20">
+    <div className="text-center max-w-md">
+      <div 
+        className="w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6"
+        style={{ backgroundColor: `${COLORS.error}15` }}
+      >
+        <AlertCircle className="w-12 h-12" style={{ color: COLORS.error }} />
+      </div>
+      <h3 className="text-2xl font-bold text-gray-900 mb-3">Something went wrong</h3>
+      <p className="text-gray-600 mb-8 text-lg">{error}</p>
+      <button
+        onClick={onRetry}
+        className="px-8 py-4 text-white rounded-xl font-bold shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+        style={{ 
+          background: `linear-gradient(135deg, ${COLORS.primary}, ${COLORS.primaryLight})` 
+        }}
+      >
+        Try Again
+      </button>
+    </div>
+  </div>
+);
+
+// ==================== MAIN DASHBOARD COMPONENT ====================
 const StudentDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [dashboardData, setDashboardData] = useState({
+    stats: {
+      connections: 0,
+      posts: 0,
+      mentorships: 0,
+      events: 0
+    },
+    upcomingEvents: [],
+    recentActivities: [],
+    unreadMessages: 0
+  });
+
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   debug('StudentDashboard', 'Component mounted', { user: user?.name, activeTab });
 
-  // Fetch upcoming events for the overview
-  useEffect(() => {
-    if (activeTab === 'overview') {
-      fetchUpcomingEvents();
-    }
-  }, [activeTab]);
-
-  const fetchUpcomingEvents = async () => {
+  const fetchDashboardData = useCallback(async () => {
+    setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_URL}/events?status=upcoming&limit=3`, {
-        headers: { Authorization: `Bearer ${token}` }
+      if (!token) throw new Error('No authentication token found');
+
+      const headers = { Authorization: `Bearer ${token}` };
+
+      const [eventsRes, postsRes, mentorshipsRes, profilesRes, conversationsRes] = await Promise.all([
+        axios.get(`${API_URL}/events?status=upcoming&limit=4`, { headers }).catch(() => ({ data: { events: [] } })),
+        axios.get(`${API_URL}/posts?limit=10`, { headers }).catch(() => ({ data: { posts: [] } })),
+        axios.get(`${API_URL}/mentorships/student`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API_URL}/profiles?limit=50`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API_URL}/conversations`, { headers }).catch(() => ({ data: [] }))
+      ]);
+
+      const stats = {
+        connections: Array.isArray(profilesRes.data) ? profilesRes.data.length : 0,
+        posts: postsRes.data?.posts?.length || 0,
+        mentorships: Array.isArray(mentorshipsRes.data) 
+          ? mentorshipsRes.data.filter(m => m.status === 'active').length 
+          : 0,
+        events: eventsRes.data?.events?.length || 0
+      };
+
+      const upcomingEvents = eventsRes.data?.events || [];
+      const recentActivities = [];
+      
+      (postsRes.data?.posts || []).slice(0, 2).forEach(post => {
+        recentActivities.push({
+          id: `post-${post._id}`,
+          type: 'post',
+          message: `New post: ${post.title || post.content?.substring(0, 50)}...`,
+          time: getTimeAgo(post.createdAt),
+          icon: FileText,
+          avatar: post.author?.name?.charAt(0) || 'P'
+        });
       });
-      setUpcomingEvents(response.data.events || []);
-    } catch (error) {
-      console.error('Error fetching upcoming events:', error);
-    }
-  };
 
-  const stats = [
-    {
-      id: 'connections', name: 'Alumni Connections', value: '24', change: '+12%', trend: 'up',
-      icon: Users, gradient: PRIMARY_GRADIENT, bgGradient: `from-${PRIMARY_TW_COLOR}-50 to-${PRIMARY_TW_COLOR}-100`
-    },
-    {
-      id: 'posts', name: 'New Community Posts', value: '15', change: '+5 new', trend: 'up',
-      icon: MessageCircle, gradient: ACCENT_GRADIENT, bgGradient: `from-${ACCENT_TW_COLOR}-50 to-${ACCENT_TW_COLOR}-100`
-    },
-    {
-      id: 'jobs', name: 'Job Applications', value: '7', change: '3 pending', trend: 'neutral',
-      icon: Briefcase, gradient: 'from-purple-500 to-purple-600', bgGradient: 'from-purple-50 to-purple-100'
-    },
-    {
-      id: 'mentorships', name: 'Active Mentors', value: '5', change: '1 scheduled', trend: 'up',
-      icon: Award, gradient: 'from-pink-500 to-red-500', bgGradient: 'from-pink-50 to-red-100'
-    }
-  ];
+      (eventsRes.data?.events || []).slice(0, 2).forEach(event => {
+        recentActivities.push({
+          id: `event-${event._id}`,
+          type: 'event',
+          message: `Upcoming: ${event.title}`,
+          time: getTimeAgo(event.createdAt),
+          icon: Calendar,
+          avatar: '📅'
+        });
+      });
 
-  const recentActivities = [
-    { id: 1, type: 'connection', message: 'John Doe accepted your connection request', time: '2 hours ago', icon: User, color: PRIMARY_TW_COLOR, avatar: 'JD' },
-    { id: 2, type: 'event', message: 'New event: Tech Career Fair 2024', time: '4 hours ago', icon: Calendar, color: ACCENT_TW_COLOR, avatar: '📅' },
-    { id: 3, type: 'job', message: 'New job posting: Frontend Developer at TechCorp', time: '1 day ago', icon: Briefcase, color: 'purple', avatar: '💼' },
-    { id: 4, type: 'message', message: 'Sarah Wilson sent you a message', time: '2 days ago', icon: MessageCircle, color: 'orange', avatar: 'SW' }
-  ];
+      const unreadMessages = Array.isArray(conversationsRes.data)
+        ? conversationsRes.data.filter(c => c.unreadCount > 0).length
+        : 0;
+
+      setDashboardData({
+        stats,
+        upcomingEvents,
+        recentActivities: recentActivities.slice(0, 4),
+        unreadMessages
+      });
+
+      setError(null);
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.response?.data?.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'overview' && user) {
+      fetchDashboardData();
+    }
+  }, [activeTab, user, fetchDashboardData]);
 
   const handleTabChange = (tabId) => {
-    debug('StudentDashboard', 'Tab change attempted', { from: activeTab, to: tabId });
+    debug('StudentDashboard', 'Tab change', { from: activeTab, to: tabId });
     setActiveTab(tabId);
     setError(null);
   };
 
   const renderContent = () => {
-    try {
-      debug('StudentDashboard', 'Rendering content', { activeTab });
-      
-      switch (activeTab) {
-        case 'overview':
-          return (
-            <OverviewTab 
-              stats={stats}
-              recentActivities={recentActivities}
-              upcomingEvents={upcomingEvents}
-              onNavigateToPosts={() => handleTabChange('posts')}
-              onNavigateToMessages={() => handleTabChange('messages')}
-              onNavigateToEvents={() => handleTabChange('events')}
-              onNavigateToAlumni={() => handleTabChange('alumni')}
-              loading={loading}
-              primaryColor={PRIMARY_TW_COLOR}
-              accentColor={ACCENT_TW_COLOR}
-            />
-          );
-        case 'alumni':
-          return <TabContentWrapper title="Alumni Directory 👥"><ProfilesList /></TabContentWrapper>;
-        case 'ai-matching':
-          return <TabContentWrapper title="AI Mentor Matching 🧠"><MentorSuggestions /></TabContentWrapper>;
-        case 'my-mentorships':
-          return <TabContentWrapper title="My Active Mentorships 🤝"><MentorshipDashboard /></TabContentWrapper>;
-        case 'events':
-          return <TabContentWrapper title="Events Calendar 📅" icon={Calendar}><EventsPage embedded={true} /></TabContentWrapper>;
-        case 'posts':
-          return <TabContentWrapper title="Alumni Community Posts 💬"><PostsPage /></TabContentWrapper>;
-        case 'messages':
-          return (
-            <TabContentWrapper title="Messages" icon={MessageSquare}>
-              <MessagingPage embedded={true} />
-            </TabContentWrapper>
-          );
-        case 'setup-profile':
-          return <TabContentWrapper title="Profile & Settings ⚙️"><SetupProfile /></TabContentWrapper>;
-        default:
-          return <TabContentWrapper title="Error"><ErrorFallback error="Unknown Tab" onRetry={() => handleTabChange('overview')} /></TabContentWrapper>;
-      }
-    } catch (err) {
-      console.error('Error rendering tab content:', err);
-      setError(`Failed to load ${activeTab} content`);
-      return <ErrorFallback error={error} onRetry={() => window.location.reload()} />;
+    if (loading && activeTab === 'overview') {
+      return (
+        <div className="flex items-center justify-center min-h-[70vh]">
+          <div className="text-center">
+            <div 
+              className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"
+              style={{ backgroundColor: `${COLORS.primary}15` }}
+            >
+              <Loader className="w-10 h-10 animate-spin" style={{ color: COLORS.primary }} />
+            </div>
+            <p className="text-gray-600 text-xl font-semibold">Loading your dashboard...</p>
+            <p className="text-gray-400 text-sm mt-2">Please wait a moment</p>
+          </div>
+        </div>
+      );
+    }
+
+    switch (activeTab) {
+      case 'overview':
+        return (
+          <OverviewTab 
+            dashboardData={dashboardData}
+            onTabChange={handleTabChange}
+            loading={loading}
+            onRefresh={fetchDashboardData}
+          />
+        );
+      case 'alumni':
+        return <TabContentWrapper title="Alumni Directory" icon={UserCircle}><ProfilesList /></TabContentWrapper>;
+      case 'ai-matching':
+        return <TabContentWrapper title="AI Mentor Matching" icon={Brain}><MentorSuggestions /></TabContentWrapper>;
+      case 'my-mentorships':
+        return <TabContentWrapper title="My Mentorships" icon={Users}><MentorshipDashboard /></TabContentWrapper>;
+      case 'events':
+        return <TabContentWrapper title="Events Calendar" icon={Calendar}><EventsPage embedded={true} /></TabContentWrapper>;
+      case 'posts':
+        return <TabContentWrapper title="Community Posts" icon={FileText}><PostsPage /></TabContentWrapper>;
+      case 'messages':
+        return <TabContentWrapper title="Messages" icon={MessageSquare}><MessagingPage embedded={true} /></TabContentWrapper>;
+      case 'setup-profile':
+        return <TabContentWrapper title="Profile & Settings" icon={Settings}><SetupProfile /></TabContentWrapper>;
+      default:
+        return <ErrorFallback error="Unknown Tab" onRetry={() => handleTabChange('overview')} />;
     }
   };
 
@@ -302,41 +786,45 @@ const StudentDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-          <p className="text-gray-600">Please log in to access the dashboard</p>
+          <AlertCircle className="w-24 h-24 mx-auto mb-6" style={{ color: COLORS.error }} />
+          <h2 className="text-4xl font-bold text-gray-900 mb-3">Authentication Required</h2>
+          <p className="text-gray-600 text-xl">Please log in to access the dashboard</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen" style={{ backgroundColor: COLORS.background }}>
       <StudentNavbar 
         activeTab={activeTab} 
         onTabChange={handleTabChange} 
         onLogout={logout}
         user={user}
+        notificationCount={dashboardData.unreadMessages}
       />
 
       {error && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg flex justify-between items-center">
+        <div className="max-w-full mx-auto px-6 pt-4">
+          <div 
+            className="border-l-4 p-5 rounded-xl flex justify-between items-center shadow-lg"
+            style={{ 
+              borderLeftColor: COLORS.error,
+              backgroundColor: `${COLORS.error}10`
+            }}
+          >
             <div className="flex items-center">
-              <AlertCircle className="w-5 h-5 text-red-500 mr-2" />
-              <p className="text-red-700 font-medium">{error}</p>
+              <AlertCircle className="w-6 h-6 mr-3" style={{ color: COLORS.error }} />
+              <p className="font-semibold text-lg" style={{ color: COLORS.error }}>{error}</p>
             </div>
-            <button
-              onClick={() => setError(null)}
-              className="text-red-500 hover:text-red-700"
-            >
-              <X className="w-4 h-4" />
+            <button onClick={() => setError(null)} className="hover:opacity-70">
+              <X className="w-5 h-5" style={{ color: COLORS.error }} />
             </button>
           </div>
         </div>
       )}
 
-      <main className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <main className="max-w-full mx-auto px-6 py-6">
         {renderContent()}
       </main>
 
@@ -344,328 +832,5 @@ const StudentDashboard = () => {
     </div>
   );
 };
-
-const TabContentWrapper = ({ title, children, icon: Icon }) => (
-  <div className="min-h-[70vh] bg-white rounded-2xl shadow-xl p-6 lg:p-8 border border-gray-100">
-    <div className="flex items-center space-x-3 mb-6 border-b pb-4 border-gray-100">
-      {Icon && <Icon className={`w-7 h-7 text-${PRIMARY_TW_COLOR}-600`} />}
-      <h1 className="text-3xl font-bold text-gray-900">{title}</h1>
-    </div>
-    <div className="space-y-6">
-      {children}
-    </div>
-  </div>
-);
-
-const OverviewTab = ({ stats, recentActivities, upcomingEvents, onNavigateToPosts, onNavigateToMessages, onNavigateToEvents, onNavigateToAlumni, loading, primaryColor, accentColor }) => {
-  const [localLoading, setLocalLoading] = useState(false);
-  const { user } = useAuth();
-  const firstName = user?.name?.split(' ')[0] || 'Student';
-
-  const handleQuickAction = async (action) => {
-    setLocalLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setLocalLoading(false);
-    if (action === 'posts') {
-      onNavigateToPosts();
-    } else if (action === 'messages') {
-      onNavigateToMessages();
-    } else if (action === 'events') {
-      onNavigateToEvents();
-    } else if (action === 'alumni') {
-      onNavigateToAlumni();
-    } else if (action === 'ai-matching') {
-      onNavigateToEvents('ai-matching');
-    } else if (action === 'setup-profile') {
-      onNavigateToEvents('setup-profile');
-    }
-  };
-
-  const activityGradientMap = {
-    [primaryColor]: PRIMARY_GRADIENT,
-    [accentColor]: ACCENT_GRADIENT,
-    'purple': 'from-purple-500 to-purple-600',
-    'orange': 'from-orange-500 to-red-500',
-    'blue': PRIMARY_GRADIENT,
-    'teal': ACCENT_GRADIENT,
-  };
-
-  const eventColorMap = {
-    [primaryColor]: `text-${primaryColor}-600 bg-${primaryColor}-50 border-${primaryColor}-500`,
-    [accentColor]: `text-${accentColor}-600 bg-${accentColor}-50 border-${accentColor}-500`,
-    'purple': 'border-purple-500 bg-purple-50',
-    'green': 'border-green-500 bg-green-50',
-  };
-
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
-
-  return (
-    <div className="space-y-6 lg:space-y-8">
-      <div className={`relative overflow-hidden bg-gradient-to-r ${WELCOME_GRADIENT} rounded-2xl shadow-2xl p-6 lg:p-10 transition-all duration-500`}>
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full -mr-40 -mt-40 blur-3xl transform rotate-12"></div>
-        <div className="relative z-10">
-          <div className="flex items-center space-x-2 mb-3">
-            <Sparkles className="w-5 h-5 text-yellow-300 animate-pulse" />
-            <span className="text-white text-sm font-semibold tracking-wider uppercase">Your Hub</span>
-          </div>
-          <h1 className="text-3xl lg:text-5xl font-extrabold text-white mb-3 tracking-tight">
-            Hello, {firstName}! 👋
-          </h1>
-          <p className="text-blue-100 text-base lg:text-lg max-w-3xl font-light">
-            You're making great progress! Check your latest stats and opportunities below.
-          </p>
-          <div className="mt-6">
-            <button 
-              onClick={() => handleQuickAction('setup-profile')}
-              className={`flex items-center space-x-2 px-4 py-2 bg-white text-${primaryColor}-600 rounded-full text-sm font-semibold shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all`}
-            >
-              <span>Complete Your Profile</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => {
-          const Icon = stat.icon;
-          const gradient = stat.gradient;
-          const textClasses = stat.trend === 'up' ? 'text-green-500' : 'text-gray-500';
-
-          return (
-            <div 
-              key={stat.id}
-              className={`group relative bg-white rounded-2xl shadow-lg transition-all duration-300 p-6 border border-gray-100 overflow-hidden transform hover:-translate-y-1 hover:ring-2 hover:ring-offset-1 hover:ring-${PRIMARY_TW_COLOR}-100`}
-            >
-              <div className="relative z-10">
-                <div className="flex items-start justify-between mb-4">
-                  <div className={`w-12 h-12 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform duration-300`}>
-                    <Icon className="w-6 h-6 text-white" />
-                  </div>
-                  {stat.trend === 'up' && (
-                    <TrendingUp className={`w-5 h-5 ${textClasses}`} />
-                  )}
-                </div>
-                <p className="text-sm font-medium text-gray-500 mb-1">{stat.name}</p>
-                <p className="text-4xl font-extrabold text-gray-900 mb-2">{stat.value}</p>
-                <p className={`text-sm flex items-center space-x-1 font-medium ${textClasses}`}>
-                  <span>{stat.change}</span>
-                </p>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
-        <div className="lg:col-span-2">
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100 h-full">
-            <div className="flex items-center justify-between mb-6 border-b pb-4 border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900">Recent Activity Timeline</h2>
-              <button className={`text-${primaryColor}-600 hover:text-${primaryColor}-700 text-sm font-semibold flex items-center space-x-1 transition-all`}>
-                <span>View All</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="space-y-4">
-              {recentActivities.map((activity) => {
-                const gradientClass = activityGradientMap[activity.color] || 'from-gray-400 to-gray-500';
-                
-                return (
-                  <div 
-                    key={activity.id} 
-                    className="flex items-center space-x-4 p-4 hover:bg-gray-50 rounded-xl transition-all duration-200 cursor-pointer group border border-transparent"
-                    onClick={() => debug('OverviewTab', 'Activity clicked', activity)}
-                  >
-                    <div className={`w-11 h-11 bg-gradient-to-br ${gradientClass} rounded-full flex items-center justify-center shadow-md flex-shrink-0`}>
-                      <span className="text-white text-sm font-bold">{activity.avatar}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-base font-medium text-gray-900 line-clamp-1">{activity.message}</p>
-                      <p className="text-xs text-gray-500 mt-0.5 flex items-center space-x-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{activity.time}</span>
-                      </p>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-6 text-center">
-              <button 
-                className={`text-${primaryColor}-600 hover:text-${primaryColor}-800 font-semibold text-sm transition-colors`}
-                onClick={() => handleQuickAction('messages')}
-              >
-                See all messages and alerts
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-            <div className="flex items-center justify-between mb-6 border-b pb-4 border-gray-100">
-              <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
-              <Maximize2 
-                className="w-5 h-5 text-gray-400 hover:text-gray-600 cursor-pointer transition-colors"
-                onClick={() => handleQuickAction('events')}
-              />
-            </div>
-            <div className="space-y-4">
-              {upcomingEvents.length === 0 ? (
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500 text-sm">No upcoming events</p>
-                </div>
-              ) : (
-                upcomingEvents.map((event) => {
-                  const colorClasses = 'border-blue-500 bg-blue-50';
-                  
-                  return (
-                    <div 
-                      key={event._id} 
-                      className={`border-l-4 ${colorClasses} pl-4 pr-3 py-3 rounded-r-xl transition-all duration-200 cursor-pointer hover:shadow-md group`}
-                      onClick={() => handleQuickAction('events')}
-                    >
-                      <h3 className="font-semibold text-gray-900 text-base mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">
-                        {event.title}
-                      </h3>
-                      <div className="space-y-1 text-sm">
-                        <p className="text-gray-700 flex items-center space-x-2">
-                          <Calendar className="w-4 h-4 text-gray-500" />
-                          <span className="font-medium">{formatDate(event.date)} • {event.time}</span>
-                        </p>
-                        <p className="text-gray-600 flex items-center space-x-2">
-                          <MapPin className="w-4 h-4 text-gray-500" />
-                          <span>{event.location}</span>
-                        </p>
-                      </div>
-                      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                        <span className="text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-800">
-                          {event.type}
-                        </span>
-                        <span className="text-sm text-gray-500 flex items-center space-x-1">
-                          <Users className="w-3 h-3" />
-                          <span>{event.attendees?.filter(a => a.status === 'registered').length || 0} attending</span>
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-            <button 
-              onClick={() => handleQuickAction('events')}
-              className="w-full mt-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-semibold hover:shadow-xl transform hover:scale-[1.01] transition-all duration-200 flex items-center justify-center space-x-2"
-            >
-              <Calendar className="w-5 h-5" />
-              <span>View All Events</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-2xl shadow-lg p-6 lg:p-8 border border-gray-100">
-        <div className="flex items-center space-x-2 mb-6 border-b pb-4 border-gray-100">
-          <div className={`w-8 h-8 bg-gradient-to-br from-${primaryColor}-500 to-${accentColor}-500 rounded-lg flex items-center justify-center shadow-md`}>
-            <Target className="w-4 h-4 text-white" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900">Take Action Now</h2>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
-          <QuickActionButton
-            icon={UserCircle}
-            label="Alumni Directory"
-            gradient="from-indigo-500 to-purple-600"
-            onClick={() => handleQuickAction('alumni')}
-            loading={localLoading}
-          />
-          <QuickActionButton
-            icon={FileText}
-            label="Community Feed"
-            gradient={PRIMARY_GRADIENT}
-            onClick={() => handleQuickAction('posts')}
-            loading={localLoading}
-          />
-          <QuickActionButton
-            icon={Brain}
-            label="Find a Mentor"
-            gradient={ACCENT_GRADIENT}
-            onClick={() => handleQuickAction('ai-matching')}
-            loading={localLoading}
-          />
-          <QuickActionButton
-            icon={Calendar}
-            label="Browse Events"
-            gradient="from-blue-500 to-indigo-600"
-            onClick={() => handleQuickAction('events')}
-            loading={localLoading}
-          />
-          <QuickActionButton
-            icon={MessageSquare}
-            label="Messages"
-            gradient="from-pink-500 to-red-500"
-            onClick={() => handleQuickAction('messages')}
-            loading={localLoading}
-          />
-          <QuickActionButton
-            icon={Users}
-            label="Mentorships"
-            gradient="from-green-500 to-emerald-600"
-            onClick={() => handleQuickAction('my-mentorships')}
-            loading={localLoading}
-          />
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const QuickActionButton = ({ icon: Icon, label, gradient, onClick, loading }) => {
-  return (
-    <button 
-      onClick={onClick}
-      disabled={loading}
-      className="group relative overflow-hidden bg-white rounded-xl p-4 transition-all duration-300 shadow-sm hover:shadow-xl border border-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-center"
-    >
-      <div className="relative z-10 flex flex-col items-center space-y-3">
-        {loading ? (
-          <RefreshCw className="w-14 h-14 text-gray-400 mb-2 animate-spin" />
-        ) : (
-          <div className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-all duration-300`}>
-            <Icon className="w-7 h-7 text-white" />
-          </div>
-        )}
-        <span className="text-sm lg:text-base font-semibold text-gray-900 leading-tight">
-          {label}
-        </span>
-      </div>
-    </button>
-  );
-};
-
-const ErrorFallback = ({ error, onRetry }) => (
-  <div className="flex items-center justify-center py-12">
-    <div className="text-center max-w-md">
-      <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-      <h3 className="text-xl font-semibold text-gray-900 mb-2">Something went wrong</h3>
-      <p className="text-gray-600 mb-4">{error}</p>
-      <button
-        onClick={onRetry}
-        className={`bg-${PRIMARY_TW_COLOR}-500 text-white px-6 py-2 rounded-lg hover:bg-${PRIMARY_TW_COLOR}-600 transition-colors`}
-      >
-        Try Again
-      </button>
-    </div>
-  </div>
-);
 
 export default StudentDashboard;

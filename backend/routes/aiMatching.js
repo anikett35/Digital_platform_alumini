@@ -10,10 +10,14 @@ const {
   updateMatchingProfile,
   getMatchingAnalytics,
   getUserProfile,
-  getProfileStatus
+  getProfileStatus,
+  debugProfiles  // ADD THIS LINE
 } = require('../controllers/aiMatchingController');
 
 const { auth, checkRole, adminOnly } = require('../middleware/auth');
+
+// ADD THIS DEBUG ROUTE AT THE TOP
+router.get('/debug', auth, debugProfiles);
 
 // Get user profile for AI matching
 router.get('/profile', auth, getUserProfile);

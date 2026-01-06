@@ -1,6 +1,14 @@
 import React, { createContext, useContext, useReducer, useEffect } from 'react';
 import axios from 'axios';
 
+// Get API URL from environment variable
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Create axios instance with base URL
+const api = axios.create({
+  baseURL: API_URL
+});
+
 // Initial state
 const initialState = {
   user: null,
@@ -70,19 +78,22 @@ const AuthContext = createContext();
 // Set up axios interceptor
 const setupAxiosInterceptor = (token, dispatch) => {
   if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   } else {
-    delete axios.defaults.headers.common['Authorization'];
+    delete api.defaults.headers.common['Authorization'];
   }
 
+  // Clear existing interceptors to avoid duplicates
+  api.interceptors.response.clear();
+
   // Response interceptor for handling token expiration
-  axios.interceptors.response.use(
+  api.interceptors.response.use(
     (response) => response,
     (error) => {
       if (error.response?.status === 401) {
         dispatch({ type: AUTH_ACTIONS.LOGOUT });
         localStorage.removeItem('token');
-        delete axios.defaults.headers.common['Authorization'];
+        delete api.defaults.headers.common['Authorization'];
       }
       return Promise.reject(error);
     }
@@ -105,7 +116,7 @@ export const AuthProvider = ({ children }) => {
 
       try {
         setupAxiosInterceptor(token, dispatch);
-        const response = await axios.get('/api/auth/profile');
+        const response = await api.get('/api/auth/profile');
         
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
@@ -130,7 +141,7 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
 
-      const response = await axios.post('/api/auth/login', {
+      const response = await api.post('/api/auth/login', {
         email,
         password
       });
@@ -162,7 +173,7 @@ export const AuthProvider = ({ children }) => {
 
       console.log('AuthContext: Sending registration request with data:', userData);
       
-      const response = await axios.post('/api/auth/register', userData);
+      const response = await api.post('/api/auth/register', userData);
       const { token, user } = response.data;
       
       console.log('AuthContext: Registration successful:', response.data);
@@ -190,14 +201,14 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = () => {
     localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    delete api.defaults.headers.common['Authorization'];
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
   };
 
   // Update profile function
   const updateProfile = async (userData) => {
     try {
-      const response = await axios.put('/api/auth/profile', userData);
+      const response = await api.put('/api/auth/profile', userData);
       dispatch({
         type: AUTH_ACTIONS.UPDATE_USER,
         payload: response.data.user
@@ -242,3 +253,6 @@ export const useAuth = () => {
   }
   return context;
 };
+
+// Export the configured axios instance for use in other components
+export { api };

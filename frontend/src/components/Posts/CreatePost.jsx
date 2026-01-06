@@ -1,6 +1,9 @@
+// frontend/src/components/Community/CreatePost.jsx
+// COMPLETE FIXED VERSION - Uses authenticated API
+
 import React, { useState } from 'react';
 import { X, Send, Tag, FileText } from 'lucide-react';
-import axios from 'axios';
+import { api } from '../../context/AuthContext'; // Import api from AuthContext
 
 const CreatePost = ({ isOpen, onClose, onPostCreated }) => {
   const [formData, setFormData] = useState({
@@ -32,7 +35,8 @@ const CreatePost = ({ isOpen, onClose, onPostCreated }) => {
     setIsLoading(true);
 
     try {
-      const response = await axios.post('/api/posts', formData);
+      // Use authenticated api instance instead of plain axios
+      const response = await api.post('/api/posts', formData);
       
       if (response.data.post) {
         onPostCreated(response.data.post);
