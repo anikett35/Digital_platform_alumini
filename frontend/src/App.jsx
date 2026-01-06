@@ -6,29 +6,40 @@ import 'react-toastify/dist/ReactToastify.css';
 // Context
 import { AuthProvider, useAuth } from './context/AuthContext';
 
-// Components
+// Auth Components
 import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
+
+// Dashboards
 import StudentDashboard from './components/Dashboard/StudentDashboard';
 import AlumniDashboard from './components/Dashboard/AlumniDashboard';
 import AdminDashboard from './components/Dashboard/AdminDashboard';
+
+// Common Components
 import Loader from './components/Common/Loader';
-import MessagingPage from './components/Messaging/MessagingPage.jsx';
 import Chatbot from './components/Common/Chatbot';
+
+// Messaging
+import MessagingPage from './components/Messaging/MessagingPage.jsx';
 
 // AI Components
 import MentorSuggestions from './components/AI/MentorSuggestions';
 import SetupProfile from './components/AI/SetupProfile';
 import MentorshipDashboard from './components/AI/MentorshipDashboard';
 
-// Alumni Profiles Components
+// Alumni Profiles
 import ProfilesList from './components/Profiles/ProfilesList';
 import AlumniProfilePage from './components/Profiles/AlumniProfilePage';
+
+// 🔥 Job Board Page
+import JobBoard from './pages/JobBoard';
 
 // Utils
 import PrivateRoute from './utils/PrivateRoute';
 
-// Dashboard Router Component
+/* =========================
+   Dashboard Router
+========================= */
 const DashboardRouter = () => {
   const { user } = useAuth();
 
@@ -44,24 +55,22 @@ const DashboardRouter = () => {
   }
 };
 
-// Unauthorized Page Component
+/* =========================
+   Unauthorized Page
+========================= */
 const UnauthorizedPage = () => (
-  <div className="min-h-screen bg-gradient-to-br from-red-50 to-red-100 flex items-center justify-center">
+  <div className="min-h-screen flex items-center justify-center bg-red-50">
     <div className="text-center">
       <div className="text-6xl mb-4">🚫</div>
-      <h1 className="text-3xl font-bold text-red-600 mb-2">Access Denied</h1>
-      <p className="text-red-500 mb-4">You don't have permission to access this page.</p>
-      <button
-        onClick={() => window.history.back()}
-        className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition-colors"
-      >
-        Go Back
-      </button>
+      <h1 className="text-3xl font-bold text-red-600">Access Denied</h1>
+      <p className="text-red-500 mt-2">You don't have permission to access this page.</p>
     </div>
   </div>
 );
 
-// Main App Content
+/* =========================
+   App Content
+========================= */
 const AppContent = () => {
   const { loading, isAuthenticated } = useAuth();
 
@@ -71,23 +80,23 @@ const AppContent = () => {
 
   return (
     <div className="App">
-      {/* Routes */}
       <Routes>
-        {/* Public Routes */}
-        <Route 
-          path="/login" 
+
+        {/* ===== Public Routes ===== */}
+        <Route
+          path="/login"
           element={
             isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
-          } 
+          }
         />
-        <Route 
-          path="/register" 
+        <Route
+          path="/register"
           element={
             isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />
-          } 
+          }
         />
 
-        {/* Main Dashboard Route */}
+        {/* ===== Dashboard ===== */}
         <Route
           path="/dashboard/*"
           element={
@@ -97,7 +106,27 @@ const AppContent = () => {
           }
         />
 
-        {/* Alumni Directory/Profiles List Route */}
+        {/* ===== Job Board ===== */}
+        <Route
+          path="/jobs"
+          element={
+            <PrivateRoute>
+              <JobBoard />
+            </PrivateRoute>
+          }
+        />
+
+        {/* ===== Messaging ===== */}
+        <Route
+          path="/messages"
+          element={
+            <PrivateRoute>
+              <MessagingPage />
+            </PrivateRoute>
+          }
+        />
+
+        {/* ===== Alumni Directory ===== */}
         <Route
           path="/alumni-directory"
           element={
@@ -107,7 +136,6 @@ const AppContent = () => {
           }
         />
 
-        {/* Individual Alumni Profile Route */}
         <Route
           path="/alumni/:id"
           element={
@@ -117,39 +145,7 @@ const AppContent = () => {
           }
         />
 
-        {/* Alternative profile routes for flexibility */}
-        <Route
-          path="/profiles/:id"
-          element={
-            <PrivateRoute>
-              <AlumniProfilePage />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/profile/:id"
-          element={
-            <PrivateRoute>
-              <AlumniProfilePage />
-            </PrivateRoute>
-          }
-        />
-
-        {/* Legacy routes - redirect to dashboard */}
-        <Route
-          path="/student/*"
-          element={<Navigate to="/dashboard" replace />}
-        />
-        <Route
-          path="/alumni/*"
-          element={<Navigate to="/dashboard" replace />}
-        />
-        <Route
-          path="/admin/*"
-          element={<Navigate to="/dashboard" replace />}
-        />
-
-        {/* AI Mentorship System Routes */}
+        {/* ===== AI Mentorship ===== */}
         <Route
           path="/ai-matching"
           element={
@@ -175,42 +171,40 @@ const AppContent = () => {
           }
         />
 
-        {/* Error Routes */}
+        {/* ===== Unauthorized ===== */}
         <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-        {/* Default Route */}
+        {/* ===== Default ===== */}
         <Route
           path="/"
           element={
-            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />
+            isAuthenticated
+              ? <Navigate to="/dashboard" replace />
+              : <Navigate to="/login" replace />
           }
         />
 
-        {/* Catch-All */}
+        {/* ===== Catch All ===== */}
         <Route path="*" element={<Navigate to="/" replace />} />
+
       </Routes>
 
-      {/* ✅ Global AI Chatbot - Shows only when user is authenticated */}
+      {/* Global Chatbot */}
       {isAuthenticated && <Chatbot />}
 
-      {/* Toast Notifications */}
+      {/* Toasts */}
       <ToastContainer
         position="top-right"
         autoClose={5000}
-        hideProgressBar={false}
-        newestOnTop={false}
-        closeOnClick
-        rtl={false}
-        pauseOnFocusLoss
-        draggable
-        pauseOnHover
         theme="colored"
       />
     </div>
   );
 };
 
-// Main App Component
+/* =========================
+   Main App
+========================= */
 function App() {
   return (
     <AuthProvider>
