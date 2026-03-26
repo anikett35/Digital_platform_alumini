@@ -1,4 +1,3 @@
-// backend/routes/user.js
 const express = require('express');
 const router = express.Router();
 const { auth } = require('../middleware/auth');
@@ -8,25 +7,11 @@ const User = require('../models/User');
 router.get('/me', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      user
-    });
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true, user });
   } catch (error) {
     console.error('Get user error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error',
-      error: error.message 
-    });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -35,21 +20,10 @@ router.put('/update', auth, async (req, res) => {
   try {
     const userId = req.user.id;
     const updateData = req.body;
-    
-    console.log('=== Profile Update Request ===');
-    console.log('User ID:', userId);
-    console.log('Update Data:', JSON.stringify(updateData, null, 2));
-    
-    // Get user
+
     const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-    
-    // Define allowed fields for update
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
     const allowedUpdates = [
       'name', 'phoneNumber', 'location', 'department', 'bio', 'profileHeadline',
       'skills', 'interests', 'linkedinUrl', 'githubUrl', 'website',
@@ -59,86 +33,32 @@ router.put('/update', auth, async (req, res) => {
       'lookingForMentor', 'availableAsMentor', 'mentorshipAreas',
       'isOpenToMentorship', 'profileVisibility', 'photoGallery'
     ];
-    
-    // Update only allowed fields
+
     allowedUpdates.forEach(field => {
       if (updateData[field] !== undefined) {
         user[field] = updateData[field];
       }
     });
-    
-    // Calculate and update profile strength
+
     user.profileStrength = user.calculateProfileStrength();
     user.profileComplete = user.profileStrength >= 70;
     user.lastProfileUpdate = new Date();
-    
     await user.save();
-    
-    console.log('Profile updated successfully');
-    console.log('Profile Strength:', user.profileStrength);
-    
+
     const updatedUser = await User.findById(userId).select('-password');
-    
-    res.json({
-      success: true,
-      message: 'Profile updated successfully!',
-      user: updatedUser
-    });
-    
+    res.json({ success: true, message: 'Profile updated successfully!', user: updatedUser });
   } catch (error) {
-    console.error('=== Profile Update Error ===');
-    console.error('Error:', error);
-    console.error('Error Stack:', error.stack);
-    
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update profile',
-      error: error.message
-    });
+    console.error('Profile Update Error:', error);
+    res.status(500).json({ success: false, message: 'Failed to update profile', error: error.message });
   }
 });
 
-// Get user by ID (public profile)
-router.get('/:userId', auth, async (req, res) => {
-  try {
-    const user = await User.findById(req.params.userId).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-    
-    // Check visibility
-    if (user.profileVisibility === 'private' && user._id.toString() !== req.user.id) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Profile is private' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      user
-    });
-  } catch (error) {
-    console.error('Get user by ID error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error',
-      error: error.message 
-    });
-  }
-});
-
-// Search users
+// Search users - FIXED: must come BEFORE /:userId to avoid "search" being treated as an ID
 router.get('/search', auth, async (req, res) => {
   try {
     const { query, role, department, skills } = req.query;
-    
-    let filter = { isActive: true };
-    
+    const filter = { isActive: true };
+
     if (query) {
       filter.$or = [
         { name: { $regex: query, $options: 'i' } },
@@ -146,28 +66,19 @@ router.get('/search', auth, async (req, res) => {
         { profileHeadline: { $regex: query, $options: 'i' } }
       ];
     }
-    
     if (role) filter.role = role;
     if (department) filter.department = department;
     if (skills) filter.skills = { $in: skills.split(',') };
-    
+
     const users = await User.find(filter)
       .select('-password')
       .limit(50)
       .sort({ profileStrength: -1, createdAt: -1 });
-    
-    res.json({
-      success: true,
-      users,
-      count: users.length
-    });
+
+    res.json({ success: true, users, count: users.length });
   } catch (error) {
     console.error('Search users error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error',
-      error: error.message 
-    });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -175,25 +86,15 @@ router.get('/search', auth, async (req, res) => {
 router.put('/profile-image', auth, async (req, res) => {
   try {
     const { profileImage } = req.body;
-    
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { profileImage, lastProfileUpdate: new Date() },
       { new: true }
     ).select('-password');
-    
-    res.json({
-      success: true,
-      message: 'Profile image updated',
-      user
-    });
+    res.json({ success: true, message: 'Profile image updated', user });
   } catch (error) {
     console.error('Update profile image error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error',
-      error: error.message 
-    });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -201,29 +102,16 @@ router.put('/profile-image', auth, async (req, res) => {
 router.post('/photo-gallery', auth, async (req, res) => {
   try {
     const { url, caption } = req.body;
-    
+    if (!url) return res.status(400).json({ success: false, message: 'URL is required' });
+
     const user = await User.findById(req.user.id);
-    
-    user.photoGallery.push({
-      url,
-      caption: caption || '',
-      uploadedAt: new Date()
-    });
-    
+    user.photoGallery.push({ url, caption: caption || '', uploadedAt: new Date() });
     await user.save();
-    
-    res.json({
-      success: true,
-      message: 'Photo added to gallery',
-      photoGallery: user.photoGallery
-    });
+
+    res.json({ success: true, message: 'Photo added to gallery', photoGallery: user.photoGallery });
   } catch (error) {
     console.error('Add photo error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error',
-      error: error.message 
-    });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 
@@ -231,25 +119,31 @@ router.post('/photo-gallery', auth, async (req, res) => {
 router.delete('/photo-gallery/:photoId', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user.id);
-    
     user.photoGallery = user.photoGallery.filter(
       photo => photo._id.toString() !== req.params.photoId
     );
-    
     await user.save();
-    
-    res.json({
-      success: true,
-      message: 'Photo removed from gallery',
-      photoGallery: user.photoGallery
-    });
+    res.json({ success: true, message: 'Photo removed from gallery', photoGallery: user.photoGallery });
   } catch (error) {
     console.error('Delete photo error:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Server error',
-      error: error.message 
-    });
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
+// Get user by ID (public profile) - FIXED: must come AFTER specific routes
+router.get('/:userId', auth, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.userId).select('-password');
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (user.profileVisibility === 'private' && user._id.toString() !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Profile is private' });
+    }
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.error('Get user by ID error:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
 

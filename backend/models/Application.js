@@ -1,15 +1,36 @@
-const mongoose = require("mongoose");
+const mongoose = require('mongoose');
 
 const applicationSchema = new mongoose.Schema({
-  job_id: { type: mongoose.Schema.Types.ObjectId, ref: "Job" },
-  applicant_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-  referrer_id: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  job_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Job',
+    required: true
+  },
+  applicant_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  referrer_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    default: null
+  },
   status: {
     type: String,
-    enum: ["Applied", "Screening", "Interview", "Offer", "Hired", "Rejected"],
-    default: "Applied"
+    enum: ['Pending', 'Reviewed', 'Hired', 'Rejected'],
+    default: 'Pending'
   },
-  applied_at: { type: Date, default: Date.now }
-});
+  coverLetter: {
+    type: String,
+    maxlength: 2000
+  },
+  resumeUrl: {
+    type: String
+  }
+}, { timestamps: true });
 
-module.exports = mongoose.model("Application", applicationSchema);
+// Compound index to prevent duplicate applications
+applicationSchema.index({ job_id: 1, applicant_id: 1 }, { unique: true });
+
+module.exports = mongoose.model('Application', applicationSchema);
