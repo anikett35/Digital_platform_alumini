@@ -1,291 +1,103 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  Brain, 
-  Building, 
-  Send,
-  Sparkles,
-  Target,
-  Award,
-  Briefcase
-} from 'lucide-react';
-import { useAuth, api } from '../../context/AuthContext'; // Import api
+import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { aiMatchingAPI, meetingsAPI } from '../../services/api.jsx';
+import { toast } from 'react-toastify';
+import { Brain, Star, Users, Video, Send, X, Loader, ArrowRight, Sparkles } from 'lucide-react';
 
-const MentorSuggestions = () => {
-  const [suggestions, setSuggestions] = useState([]);
+function RequestModal({ mentor, onClose }) {
+  const [form, setForm] = useState({ topic: 'Career Guidance', message: '', duration: 30 });
+  const [loading, setLoading] = useState(false);
+  const send = async () => {
+    if (!form.message.trim()) { toast.error('Write a message'); return; }
+    setLoading(true);
+    try {
+      await meetingsAPI.requestMeeting({ alumniId: mentor._id, ...form, type: 'one-on-one' });
+      toast.success('🎉 Request sent!'); onClose();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed'); }
+    finally { setLoading(false); }
+  };
+  return (
+    <div className="modal-overlay">
+      <div className="modal-box max-w-md">
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between rounded-t-2xl">
+          <h2 className="font-bold text-gray-900">Request Session</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl"><X className="w-4 h-4" /></button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex items-center gap-3 p-3 bg-violet-50 rounded-xl">
+            <div className="w-10 h-10 avatar text-sm">{mentor.name?.charAt(0)}</div>
+            <div><p className="font-bold text-violet-900 text-sm">{mentor.name}</p><p className="text-xs text-violet-600">{mentor.currentPosition}</p></div>
+          </div>
+          <div><label className="label">Topic</label><select value={form.topic} onChange={e => setForm(f=>({...f,topic:e.target.value}))} className="input">{['Career Guidance','Resume Review','Interview Prep','Technical Skills','Industry Insights','Other'].map(t=><option key={t}>{t}</option>)}</select></div>
+          <div><label className="label">Message *</label><textarea value={form.message} onChange={e => setForm(f=>({...f,message:e.target.value}))} className="input resize-none" rows={3} placeholder="Introduce yourself and what you'd like to discuss…" /></div>
+          <div><label className="label">Duration</label><select value={form.duration} onChange={e => setForm(f=>({...f,duration:+e.target.value}))} className="input">{[15,30,45,60].map(d=><option key={d} value={d}>{d} min</option>)}</select></div>
+          <div className="flex gap-3"><button onClick={send} disabled={loading} className="btn-primary flex-1">{loading?'Sending…':<><Send className="w-4 h-4"/>Send</>}</button><button onClick={onClose} className="btn-secondary">Cancel</button></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function MentorSuggestions() {
+  const [mentors, setMentors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedMentor, setSelectedMentor] = useState(null);
-  const [showRequestModal, setShowRequestModal] = useState(false);
-  const { user } = useAuth();
+  const [selected, setSelected] = useState(null);
 
   useEffect(() => {
-    fetchSuggestions();
+    aiMatchingAPI.getSuggestions()
+      .then(res => setMentors(res.data?.suggestions || res.data || []))
+      .catch(() => toast.error('Failed to load suggestions'))
+      .finally(() => setLoading(false));
   }, []);
 
-  const fetchSuggestions = async () => {
-    try {
-      setLoading(true);
-      // Use api instance instead of axios
-      const { data } = await api.get('/api/ai-matching/suggestions', {
-        params: { limit: 12, minScore: 30 }
-      });
-      setSuggestions(data.suggestions);
-    } catch (error) {
-      console.error('Error fetching suggestions:', error);
-      // Show user-friendly error
-      if (error.response?.status === 401) {
-        console.error('Authentication required. Please log in again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="max-w-7xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-3 mb-2">
-          <Brain className="w-8 h-8 text-purple-600" />
-          <h1 className="text-3xl font-bold text-gray-900">AI Mentor Matching</h1>
-        </div>
-        <p className="text-gray-600 flex items-center">
-          <Sparkles className="w-4 h-4 mr-2 text-yellow-500" />
-          Our AI has analyzed {suggestions.length} potential mentors based on your profile
-        </p>
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="page-header">
+        <div className="flex items-center gap-2 mb-1"><Brain className="w-5 h-5" /><h1 className="text-xl font-bold">AI Mentor Suggestions</h1></div>
+        <p className="text-violet-100 text-sm">Personalized alumni matches based on your profile and goals</p>
       </div>
-
-      {/* Suggestions Grid */}
-      {suggestions.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <Target className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-700 mb-2">No Matches Found</h3>
-          <p className="text-gray-600">Complete your profile to get better mentor suggestions</p>
+      {loading ? (
+        <div className="flex justify-center py-20"><Loader className="w-8 h-8 text-violet-600 animate-spin" /></div>
+      ) : mentors.length === 0 ? (
+        <div className="card p-16 text-center">
+          <Sparkles className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+          <h3 className="font-bold text-gray-900 mb-2">No suggestions yet</h3>
+          <p className="text-gray-500 text-sm mb-5">Complete your profile with skills and career goals to get AI-matched mentors</p>
+          <Link to="/setup-profile" className="btn-primary">Complete Profile</Link>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {suggestions.map((suggestion) => (
-            <MentorCard
-              key={suggestion.mentor._id}
-              suggestion={suggestion}
-              onConnect={(mentor) => {
-                setSelectedMentor(mentor);
-                setShowRequestModal(true);
-              }}
-            />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {mentors.map(m => (
+            <div key={m._id} className="card-hover p-5 flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 avatar text-lg shrink-0">{m.name?.charAt(0)}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-gray-900 truncate">{m.name}</p>
+                  <p className="text-sm text-gray-500 truncate">{m.currentPosition}{m.currentCompany ? ` @ ${m.currentCompany}` : ''}</p>
+                  {m.matchScore && (
+                    <span className="text-xs font-bold text-emerald-600 flex items-center gap-1 mt-1">
+                      <Star className="w-3 h-3 fill-emerald-500" />{m.matchScore}% match
+                    </span>
+                  )}
+                </div>
+              </div>
+              {m.bio && <p className="text-xs text-gray-500 line-clamp-2">{m.bio}</p>}
+              {m.skills?.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {m.skills.slice(0,4).map((s,i) => <span key={i} className="text-xs bg-violet-50 text-violet-700 px-2 py-0.5 rounded-full border border-violet-100">{s}</span>)}
+                </div>
+              )}
+              <div className="flex gap-2 mt-auto pt-2 border-t border-gray-100">
+                <button onClick={() => setSelected(m)} className="btn-primary flex-1 text-xs py-2">
+                  <Video className="w-3.5 h-3.5" /> Request
+                </button>
+                <Link to={`/alumni/${m._id}`} className="btn-secondary text-xs py-2 px-3">Profile</Link>
+              </div>
+            </div>
           ))}
         </div>
       )}
-
-      {/* Request Modal */}
-      {showRequestModal && (
-        <MentorRequestModal
-          mentor={selectedMentor}
-          onClose={() => {
-            setShowRequestModal(false);
-            setSelectedMentor(null);
-          }}
-          onSuccess={() => {
-            setShowRequestModal(false);
-            fetchSuggestions();
-          }}
-        />
-      )}
+      {selected && <RequestModal mentor={selected} onClose={() => setSelected(null)} />}
     </div>
   );
-};
-
-const MentorCard = ({ suggestion, onConnect }) => {
-  const { mentor, matchScore, matchFactors } = suggestion;
-
-  const getScoreColor = (score) => {
-    if (score >= 80) return 'from-green-500 to-green-600';
-    if (score >= 60) return 'from-blue-500 to-blue-600';
-    if (score >= 40) return 'from-orange-500 to-orange-600';
-    return 'from-gray-500 to-gray-600';
-  };
-
-  return (
-    <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100">
-      {/* Score Badge */}
-      <div className={`bg-gradient-to-r ${getScoreColor(matchScore)} p-4 text-white`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Award className="w-5 h-5" />
-            <span className="font-semibold">Match Score</span>
-          </div>
-          <span className="text-2xl font-bold">{matchScore}%</span>
-        </div>
-      </div>
-
-      {/* Mentor Info */}
-      <div className="p-6">
-        <div className="flex items-start space-x-4 mb-4">
-          <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold text-xl">
-            {mentor.name?.charAt(0)}
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">{mentor.name}</h3>
-            <p className="text-sm text-gray-600 flex items-center mb-1">
-              <Briefcase className="w-4 h-4 mr-1" />
-              {mentor.currentPosition}
-            </p>
-            <p className="text-sm text-gray-600 flex items-center">
-              <Building className="w-4 h-4 mr-1" />
-              {mentor.currentCompany}
-            </p>
-          </div>
-        </div>
-
-        {/* Match Factors */}
-        <div className="space-y-2 mb-4">
-          <MatchFactor label="Skills" score={matchFactors.skillsMatch} />
-          <MatchFactor label="Interests" score={matchFactors.interestsMatch} />
-          <MatchFactor label="Industry" score={matchFactors.industryMatch} />
-        </div>
-
-        {/* Skills Tags */}
-        {mentor.skills && mentor.skills.length > 0 && (
-          <div className="mb-4">
-            <p className="text-xs font-semibold text-gray-500 mb-2">SKILLS</p>
-            <div className="flex flex-wrap gap-2">
-              {mentor.skills.slice(0, 4).map((skill, idx) => (
-                <span key={idx} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
-                  {skill}
-                </span>
-              ))}
-              {mentor.skills.length > 4 && (
-                <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                  +{mentor.skills.length - 4} more
-                </span>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Connect Button */}
-        <button
-          onClick={() => onConnect(mentor)}
-          className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition-all flex items-center justify-center space-x-2"
-        >
-          <Send className="w-4 h-4" />
-          <span>Request Mentorship</span>
-        </button>
-      </div>
-    </div>
-  );
-};
-
-const MatchFactor = ({ label, score }) => (
-  <div>
-    <div className="flex items-center justify-between mb-1">
-      <span className="text-xs font-medium text-gray-600">{label}</span>
-      <span className="text-xs font-bold text-gray-700">{score}%</span>
-    </div>
-    <div className="w-full bg-gray-200 rounded-full h-2">
-      <div
-        className={`h-2 rounded-full transition-all ${
-          score >= 70 ? 'bg-green-500' : score >= 40 ? 'bg-blue-500' : 'bg-orange-500'
-        }`}
-        style={{ width: `${score}%` }}
-      ></div>
-    </div>
-  </div>
-);
-
-const MentorRequestModal = ({ mentor, onClose, onSuccess }) => {
-  const [formData, setFormData] = useState({
-    message: '',
-    topic: ''
-  });
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      // Use api instance instead of axios
-      await api.post('/api/ai-matching/request', {
-        mentorId: mentor._id,
-        message: formData.message,
-        topic: formData.topic
-      });
-
-      alert('Mentorship request sent successfully!');
-      onSuccess();
-    } catch (error) {
-      console.error('Error sending request:', error);
-      alert(error.response?.data?.message || 'Failed to send request. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900">Request Mentorship</h2>
-          <p className="text-gray-600 mt-1">Connect with {mentor.name}</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Mentorship Topic *
-            </label>
-            <input
-              type="text"
-              value={formData.topic}
-              onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="e.g., Career guidance in software engineering"
-              required
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Message *
-            </label>
-            <textarea
-              value={formData.message}
-              onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-              placeholder="Introduce yourself and explain why you'd like their mentorship..."
-              required
-            />
-          </div>
-
-          <div className="flex space-x-4 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold hover:bg-blue-600 disabled:opacity-50"
-            >
-              {loading ? 'Sending...' : 'Send Request'}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-export default MentorSuggestions;
+}

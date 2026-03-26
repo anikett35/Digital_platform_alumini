@@ -25,22 +25,14 @@ const Login = () => {
   const cardRef = useRef(null);
   const floatingElementsRef = useRef([]);
 
-  // Initialize animations on mount
+  // Initialize animations on mount - FIXED: added cleanup to prevent memory leak
   useEffect(() => {
     setIsVisible(true);
-    
-    // Add floating elements to ref
     const floatingElements = document.querySelectorAll('.floating-element');
     floatingElementsRef.current = Array.from(floatingElements);
 
-    // Start floating animation
-    startFloatingAnimation();
-  }, []);
-
-  // Floating animation using requestAnimationFrame
-  const startFloatingAnimation = () => {
+    let animFrameId;
     let time = 0;
-    
     const animate = () => {
       time += 0.02;
       floatingElementsRef.current.forEach((el, index) => {
@@ -50,11 +42,12 @@ const Login = () => {
           el.style.transform = `translateY(${y}px) rotate(${rotation}deg)`;
         }
       });
-      requestAnimationFrame(animate);
+      animFrameId = requestAnimationFrame(animate);
     };
-    
-    animate();
-  };
+    animFrameId = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(animFrameId);
+  }, []);
 
   // Error animation
   useEffect(() => {
@@ -70,9 +63,12 @@ const Login = () => {
   }, [error]);
 
   // Clear error when component unmounts
+  // FIXED: empty deps array - clearError is stable (useCallback in AuthContext)
+  // Previously had [clearError] which caused infinite re-renders since clearError
+  // was recreated on every render
   useEffect(() => {
     return () => clearError();
-  }, [clearError]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleInputChange = (e) => {
     setFormData({

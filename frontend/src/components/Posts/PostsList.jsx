@@ -1,427 +1,164 @@
-// frontend/src/components/Community/PostsList.jsx
-// COMPLETE FIXED VERSION - Uses authenticated API
+import React, { useState, useEffect, useCallback } from 'react';
+import { postsAPI } from '../../services/api.jsx';
+import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
+import { Heart, MessageCircle, Plus, Trash2, Send, RefreshCw, FileText, Loader } from 'lucide-react';
 
-import React, { useState, useEffect } from 'react';
-import { 
-  Heart, 
-  MessageCircle, 
-  Share2, 
-  Calendar, 
-  User,
-  Building,
-  GraduationCap,
-  Filter,
-  Search,
-  Trash2,
-  Edit
-} from 'lucide-react';
-import { useAuth, api } from '../../context/AuthContext'; // Import api from AuthContext
+function CreatePostForm({ onCreated }) {
+  const [form, setForm] = useState({ title: '', content: '', category: 'general' });
+  const [loading, setLoading] = useState(false);
 
-const PostCard = ({ post, onLike, onComment, onDelete }) => {
-  const { user } = useAuth();
-  const [isLiked, setIsLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(post.likeCount || 0);
-  const [showComments, setShowComments] = useState(false);
-  const [newComment, setNewComment] = useState('');
-  const [comments, setComments] = useState(post.comments || []);
-
-  useEffect(() => {
-    const userLiked = post.likes?.some(like => like.user === user?.id);
-    setIsLiked(userLiked);
-  }, [post.likes, user?.id]);
-
-  const getCategoryColor = (category) => {
-    const colors = {
-      general: 'bg-gray-500',
-      career: 'bg-blue-500',
-      networking: 'bg-green-500',
-      advice: 'bg-purple-500',
-      opportunities: 'bg-orange-500',
-      events: 'bg-pink-500'
-    };
-    return colors[category] || 'bg-gray-500';
-  };
-
-  const handleLike = async () => {
-    try {
-      const response = await api.post(`/api/posts/${post._id}/like`);
-      setIsLiked(response.data.isLiked);
-      setLikeCount(response.data.likeCount);
-    } catch (error) {
-      console.error('Like error:', error);
-    }
-  };
-
-  const handleAddComment = async (e) => {
+  const submit = async e => {
     e.preventDefault();
-    if (!newComment.trim()) return;
-
+    if (!form.title.trim() || !form.content.trim()) { toast.error('Fill in title and content'); return; }
+    setLoading(true);
     try {
-      const response = await api.post(`/api/posts/${post._id}/comments`, {
-        text: newComment
-      });
-      
-      setComments([...comments, response.data.comment]);
-      setNewComment('');
-    } catch (error) {
-      console.error('Comment error:', error);
-      alert('Failed to add comment');
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this post?')) return;
-
-    try {
-      await api.delete(`/api/posts/${post._id}`);
-      onDelete(post._id);
-      alert('Post deleted successfully');
-    } catch (error) {
-      console.error('Delete error:', error);
-      alert('Failed to delete post');
-    }
-  };
-
-  const formatTimeAgo = (date) => {
-    const now = new Date();
-    const postDate = new Date(date);
-    const diffInMinutes = Math.floor((now - postDate) / (1000 * 60));
-    
-    if (diffInMinutes < 1) return 'Just now';
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
+      await postsAPI.createPost(form);
+      toast.success('Post published!');
+      setForm({ title: '', content: '', category: 'general' });
+      onCreated();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to post'); }
+    finally { setLoading(false); }
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-      {/* Author Info */}
-      <div className="p-4 pb-0">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-              <User className="w-6 h-6 text-white" />
-            </div>
+    <div className="card p-5">
+      <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2"><Plus className="w-4 h-4 text-violet-600" />Create Post</h3>
+      <form onSubmit={submit} className="space-y-3">
+        <input value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))} className="input" placeholder="Post title…" required />
+        <textarea value={form.content} onChange={e => setForm(f => ({...f, content: e.target.value}))} className="input resize-none" rows={3} placeholder="Share something with the community…" required />
+        <div className="flex items-center justify-between gap-3">
+          <select value={form.category} onChange={e => setForm(f => ({...f, category: e.target.value}))} className="input w-auto">
+            {['general','career','networking','advice','opportunities','events'].map(c => <option key={c} value={c}>{c.charAt(0).toUpperCase()+c.slice(1)}</option>)}
+          </select>
+          <button type="submit" disabled={loading} className="btn-primary">
+            {loading ? 'Posting…' : <><Send className="w-4 h-4" />Publish</>}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function PostCard({ post, currentUserId, onDelete, onLike, onComment }) {
+  const [commentText, setCommentText] = useState('');
+  const [showComments, setShowComments] = useState(false);
+  const isLiked = post.likes?.includes(currentUserId);
+
+  const submitComment = async e => {
+    e.preventDefault();
+    if (!commentText.trim()) return;
+    await onComment(post._id, commentText);
+    setCommentText('');
+  };
+
+  const CAT_COLORS = { career:'badge-blue', networking:'badge-violet', advice:'badge-amber', opportunities:'badge-green', events:'badge-red', general:'badge-gray' };
+
+  return (
+    <div className="card p-5">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-10 h-10 avatar text-sm shrink-0">{post.author?.name?.charAt(0) || '?'}</div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2">
             <div>
-              <h3 className="font-semibold text-gray-900">{post.author?.name}</h3>
-              <div className="flex items-center space-x-2 text-sm text-gray-500">
-                <span className="capitalize">{post.author?.role}</span>
-                {post.author?.role === 'alumni' && post.author?.currentCompany && (
-                  <>
-                    <span>•</span>
-                    <div className="flex items-center space-x-1">
-                      <Building className="w-3 h-3" />
-                      <span>{post.author.currentCompany}</span>
-                    </div>
-                  </>
-                )}
-                {post.author?.graduationYear && (
-                  <>
-                    <span>•</span>
-                    <div className="flex items-center space-x-1">
-                      <GraduationCap className="w-3 h-3" />
-                      <span>{post.author.graduationYear}</span>
-                    </div>
-                  </>
-                )}
-              </div>
+              <p className="font-bold text-gray-900 text-sm">{post.author?.name || 'Unknown'}</p>
+              <p className="text-xs text-gray-500">{post.author?.currentPosition} {post.author?.currentCompany ? `@ ${post.author.currentCompany}` : ''}</p>
             </div>
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <span className={`px-2 py-1 text-xs font-medium text-white rounded-full ${getCategoryColor(post.category)}`}>
-              {post.category}
-            </span>
-            <div className="flex items-center text-xs text-gray-500">
-              <Calendar className="w-3 h-3 mr-1" />
-              {formatTimeAgo(post.createdAt)}
-            </div>
-            
-            {(user?.id === post.author?._id || user?.role === 'admin') && (
-              <button
-                onClick={handleDelete}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                title="Delete post"
-              >
-                <Trash2 className="w-4 h-4" />
+            {post.author?._id === currentUserId && (
+              <button onClick={() => onDelete(post._id)} className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all">
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-4">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">{post.title}</h2>
-        <p className="text-gray-700 whitespace-pre-wrap mb-4">{post.content}</p>
-        
-        {/* Tags */}
-        {post.tags && post.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {post.tags.map((tag, index) => (
-              <span
-                key={index}
-                className="px-2 py-1 bg-blue-50 text-blue-600 text-xs rounded-full"
-              >
-                #{tag}
-              </span>
-            ))}
-          </div>
-        )}
+      {post.category && <span className={`${CAT_COLORS[post.category] || 'badge-gray'} mb-3 inline-block`}>{post.category}</span>}
+      <h3 className="font-bold text-gray-900 mb-1.5">{post.title}</h3>
+      <p className="text-sm text-gray-600 leading-relaxed mb-4">{post.content}</p>
 
-        {/* Actions */}
-        <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={handleLike}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors ${
-                isLiked 
-                  ? 'bg-red-50 text-red-600 hover:bg-red-100' 
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Heart className={`w-4 h-4 ${isLiked ? 'fill-current' : ''}`} />
-              <span className="text-sm font-medium">{likeCount}</span>
-            </button>
-            
-            <button
-              onClick={() => setShowComments(!showComments)}
-              className="flex items-center space-x-2 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span className="text-sm font-medium">{comments.length}</span>
-            </button>
-            
-            <button className="flex items-center space-x-2 px-3 py-2 bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
-              <Share2 className="w-4 h-4" />
-              <span className="text-sm font-medium">Share</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Comments Section */}
-        {showComments && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <form onSubmit={handleAddComment} className="mb-4">
-              <div className="flex space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <div className="flex-1">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder="Write a comment..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={!newComment.trim()}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Post
-                </button>
-              </div>
-            </form>
-
-            <div className="space-y-3">
-              {comments.map((comment) => (
-                <div key={comment._id} className="flex space-x-3">
-                  <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-gray-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="flex items-center space-x-2 mb-1">
-                        <span className="text-sm font-medium text-gray-900">
-                          {comment.user?.name}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {formatTimeAgo(comment.createdAt)}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-700">{comment.text}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
+        <button onClick={() => onLike(post._id)}
+          className={`flex items-center gap-1.5 text-sm font-medium transition-all ${isLiked ? 'text-red-500' : 'text-gray-500 hover:text-red-500'}`}>
+          <Heart className={`w-4 h-4 ${isLiked ? 'fill-red-500' : ''}`} />
+          {post.likes?.length || 0}
+        </button>
+        <button onClick={() => setShowComments(!showComments)}
+          className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-violet-600 transition-all">
+          <MessageCircle className="w-4 h-4" />
+          {post.comments?.length || 0} Comments
+        </button>
+        <span className="ml-auto text-xs text-gray-400">{new Date(post.createdAt).toLocaleDateString('en-IN',{day:'numeric',month:'short'})}</span>
       </div>
+
+      {showComments && (
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          {post.comments?.map((c, i) => (
+            <div key={i} className="flex gap-2 mb-3">
+              <div className="w-7 h-7 avatar text-xs shrink-0">{c.author?.name?.charAt(0) || '?'}</div>
+              <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2">
+                <p className="font-semibold text-xs text-gray-900">{c.author?.name}</p>
+                <p className="text-xs text-gray-700 mt-0.5">{c.text}</p>
+              </div>
+            </div>
+          ))}
+          <form onSubmit={submitComment} className="flex gap-2 mt-2">
+            <input value={commentText} onChange={e => setCommentText(e.target.value)}
+              className="input text-sm py-2 flex-1" placeholder="Write a comment…" />
+            <button type="submit" className="btn-primary py-2 px-4 text-xs">Send</button>
+          </form>
+        </div>
+      )}
     </div>
   );
-};
+}
 
-const PostsList = ({ onCreatePost }) => {
-  const [posts, setPosts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [filters, setFilters] = useState({
-    category: 'all',
-    search: ''
-  });
+export default function PostsList() {
   const { user } = useAuth();
+  const [posts,   setPosts]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const canCreate = user?.role === 'alumni' || user?.role === 'admin';
 
-  const categories = [
-    { value: 'all', label: 'All Posts' },
-    { value: 'career', label: 'Career' },
-    { value: 'networking', label: 'Networking' },
-    { value: 'advice', label: 'Advice' },
-    { value: 'opportunities', label: 'Opportunities' },
-    { value: 'events', label: 'Events' },
-    { value: 'general', label: 'General' }
-  ];
-
-  const fetchPosts = async () => {
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-      setError(null);
-      
-      const params = {
-        page: 1,
-        limit: 20
-      };
-      
-      if (filters.category !== 'all') {
-        params.category = filters.category;
-      }
-      
-      const response = await api.get('/api/posts', { params });
-      setPosts(response.data.posts || []);
-    } catch (error) {
-      console.error('Fetch posts error:', error);
-      setError(error.response?.data?.message || 'Failed to load posts');
-    } finally {
-      setLoading(false);
-    }
+      const res = await postsAPI.getAllPosts();
+      setPosts(Array.isArray(res.data) ? res.data : (res.data.posts || []));
+    } catch { toast.error('Failed to load posts'); }
+    finally { setLoading(false); }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const deletePost = async id => {
+    try { await postsAPI.deletePost(id); toast.success('Post deleted'); load(); }
+    catch { toast.error('Failed to delete'); }
   };
 
-  useEffect(() => {
-    fetchPosts();
-  }, [filters.category]);
-
-  const handlePostCreated = (newPost) => {
-    setPosts([newPost, ...posts]);
+  const likePost = async id => {
+    try { await postsAPI.likePost(id); load(); }
+    catch { toast.error('Failed'); }
   };
 
-  const handlePostDelete = (deletedPostId) => {
-    setPosts(prev => prev.filter(post => post._id !== deletedPostId));
+  const comment = async (id, text) => {
+    try { await postsAPI.addComment(id, { text }); load(); }
+    catch { toast.error('Failed to comment'); }
   };
-
-  const filteredPosts = posts.filter(post => 
-    post.title.toLowerCase().includes(filters.search.toLowerCase()) ||
-    post.content.toLowerCase().includes(filters.search.toLowerCase()) ||
-    post.author?.name?.toLowerCase().includes(filters.search.toLowerCase())
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading posts...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md mx-auto">
-          <h3 className="text-lg font-semibold text-red-900 mb-2">Failed to Load Posts</h3>
-          <p className="text-red-700 mb-4">{error}</p>
-          <button
-            onClick={fetchPosts}
-            className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Community Posts</h1>
-        {user?.role === 'alumni' && (
-          <button
-            onClick={onCreatePost}
-            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
-          >
-            Create Post
-          </button>
-        )}
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="section-title mb-0">Community Feed</h2>
+        <button onClick={load} className="btn-secondary p-2"><RefreshCw className="w-4 h-4" /></button>
       </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-        <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
-          {/* Category Filter */}
-          <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <select
-              value={filters.category}
-              onChange={(e) => setFilters({...filters, category: e.target.value})}
-              className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              {categories.map(cat => (
-                <option key={cat.value} value={cat.value}>
-                  {cat.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Search */}
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search posts..."
-              value={filters.search}
-              onChange={(e) => setFilters({...filters, search: e.target.value})}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Posts */}
-      <div className="space-y-6">
-        {filteredPosts.length > 0 ? (
-          filteredPosts.map((post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              onLike={() => {}}
-              onComment={() => {}}
-              onDelete={handlePostDelete}
-            />
-          ))
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-gray-400 mb-4">
-              <MessageCircle className="w-12 h-12 mx-auto" />
-            </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No posts yet</h3>
-            <p className="text-gray-500 mb-4">
-              {user?.role === 'alumni' 
-                ? "Be the first to share something with the community!"
-                : "Check back later for posts from our alumni community."
-              }
-            </p>
-          </div>
-        )}
-      </div>
+      {canCreate && <CreatePostForm onCreated={load} />}
+      {loading ? (
+        <div className="flex justify-center py-10"><Loader className="w-7 h-7 text-violet-600 animate-spin" /></div>
+      ) : posts.length === 0 ? (
+        <div className="card p-12 text-center"><FileText className="w-10 h-10 text-gray-200 mx-auto mb-2" /><p className="text-gray-500">No posts yet</p></div>
+      ) : posts.map(p => (
+        <PostCard key={p._id} post={p} currentUserId={user?.id} onDelete={deletePost} onLike={likePost} onComment={comment} />
+      ))}
     </div>
   );
-};
-
-export default PostsList;
+}

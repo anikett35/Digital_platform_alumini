@@ -1,782 +1,290 @@
-// Register.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, GraduationCap, Users, Phone, Building, Calendar, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, User, Mail, Lock, GraduationCap, Phone, Building, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 
-const Register = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    mobileNumber: '',
-    password: '',
-    confirmPassword: '',
-    role: 'student',
-    batchYear: '',
-    department: '',
-    studentId: '',
-    currentYear: '',
-    enrollmentYear: '',
-    graduationYear: '',
-    currentCompany: '',
-    currentPosition: ''
-  });
+const DEPARTMENTS = [
+  'Computer Science', 'Information Technology', 'Electronics & Communication',
+  'Mechanical Engineering', 'Civil Engineering', 'Electrical Engineering',
+  'Chemical Engineering', 'Biotechnology', 'Business Administration', 'Other'
+];
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+const THIS_YEAR = new Date().getFullYear();
+const YEARS = Array.from({ length: 30 }, (_, i) => THIS_YEAR - i);
 
-  // NEW: password checklist state
-  const [passwordStrength, setPasswordStrength] = useState({
-    hasUpperCase: false,
-    hasLowerCase: false,
-    hasSpecialChar: false,
-    hasMinLength: false,
+const inputBase =
+  'w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition';
+
+const Field = ({ label, icon: Icon, children }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <div className="relative">
+      {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />}
+      {React.cloneElement(children, {
+        className: `${inputBase} ${Icon ? 'pl-9' : 'pl-3'} pr-3`
+      })}
+    </div>
+  </div>
+);
+
+export default function Register() {
+  const [form, setForm] = useState({
+    name: '', email: '',
+    // FIXED: field is 'phoneNumber' to match backend User model (was 'mobileNumber' — caused phone to never save)
+    phoneNumber: '',
+    password: '', confirmPassword: '',
+    role: 'student', department: '',
+    studentId: '', currentYear: '', enrollmentYear: '',
+    graduationYear: '', currentCompany: '', currentPosition: ''
   });
+  const [showPwd, setShowPwd]         = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading]         = useState(false);
 
   const { register, error, clearError } = useAuth();
   const navigate = useNavigate();
 
-  const floatingElementsRef = useRef([]);
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); if (error) clearError(); };
+  const change = e => set(e.target.name, e.target.value);
 
-  const roles = [
-    { value: 'student', label: 'Student', icon: User, color: 'bg-gray-100 border-gray-900' },
-    { value: 'alumni', label: 'Alumni', icon: GraduationCap, color: 'bg-gray-100 border-gray-900' }
-  ];
+  const roleChange = r => setForm(f => ({
+    ...f, role: r,
+    studentId: '', currentYear: '', enrollmentYear: '',
+    graduationYear: '', currentCompany: '', currentPosition: ''
+  }));
 
-  const departments = [
-    'Computer Science',
-    'Information Technology',
-    'Electronics & Communication',
-    'Mechanical Engineering',
-    'Civil Engineering',
-    'Electrical Engineering',
-    'Chemical Engineering',
-    'Biotechnology',
-    'Business Administration',
-    'Other'
-  ];
-
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 50 }, (_, i) => currentYear - i);
-
-  // Initialize animations
-  useEffect(() => {
-    setIsVisible(true);
-
-    const floatingElements = document.querySelectorAll('.floating-element');
-    floatingElementsRef.current = Array.from(floatingElements);
-    startFloatingAnimation();
-  }, []);
-
-  // Floating animation using requestAnimationFrame
-  const startFloatingAnimation = () => {
-    let time = 0;
-
-    const animate = () => {
-      time += 0.02;
-      floatingElementsRef.current.forEach((el, index) => {
-        if (el) {
-          const y = Math.sin(time + index) * 15;
-          const rotation = Math.sin(time * 0.5 + index) * 3;
-          el.style.transform = `translateY(${y}px) rotate(${rotation}deg)`;
-        }
-      });
-      requestAnimationFrame(animate);
-    };
-
-    animate();
-  };
-
-  // Error animation
-  useEffect(() => {
-    if (error) {
-      const errorElement = document.querySelector('.error-message');
-      if (errorElement) {
-        errorElement.style.animation = 'none';
-        setTimeout(() => {
-          errorElement.style.animation = 'shake 0.5s ease-in-out';
-        }, 10);
-      }
+  const validate = () => {
+    if (!form.name.trim() || !form.email.trim() || !form.department) {
+      toast.error('Please fill in all required fields'); return false;
     }
-  }, [error]);
-
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    if (error) clearError();
-  };
-
-  const handleRoleChange = (role) => {
-    setFormData({
-      ...formData,
-      role,
-      studentId: '',
-      batchYear: '',
-      currentYear: '',
-      enrollmentYear: '',
-      graduationYear: '',
-      currentCompany: '',
-      currentPosition: ''
-    });
-    if (error) clearError();
-  };
-
-  // NEW: password validation logic (uppercase, lowercase, special, min 8)
-  const validatePasswordStrength = (password) => {
-    const upperCaseRegex = /[A-Z]/;                        // at least one uppercase
-    const lowerCaseRegex = /[a-z]/;                        // at least one lowercase
-    const specialCharRegex = /[~`!@#$%^&*()_\-+={}[\]|\\:;"'<>,.?/]/; // at least one special character [web:12][web:18]
-
-    setPasswordStrength({
-      hasUpperCase: upperCaseRegex.test(password),
-      hasLowerCase: lowerCaseRegex.test(password),
-      hasSpecialChar: specialCharRegex.test(password),
-      hasMinLength: password.length >= 8
-    });
-  };
-
-  const validateForm = () => {
-    if (!formData.name || !formData.email || !formData.department) {
-      toast.error('Please fill in all required fields');
-      return false;
+    // FIXED: backend accepts min 6 chars — align frontend to match so registration doesn't break
+    if (form.password.length < 6) {
+      toast.error('Password must be at least 6 characters'); return false;
     }
-
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match!');
-      return false;
+    if (form.password !== form.confirmPassword) {
+      toast.error('Passwords do not match'); return false;
     }
-
-    if (formData.password.length < 6) {
-      // This is kept if you still want a generic minimum; actual rule is below.
-      toast.error('Password must be at least 6 characters long!');
-      return false;
+    if (form.role === 'student' && (!form.currentYear || !form.enrollmentYear)) {
+      toast.error('Please fill in your current year and enrollment year'); return false;
     }
-
-    // NEW: enforce strong password rules
-    if (
-      !passwordStrength.hasUpperCase ||
-      !passwordStrength.hasLowerCase ||
-      !passwordStrength.hasSpecialChar ||
-      !passwordStrength.hasMinLength
-    ) {
-      toast.error('Password must be at least 8 characters and include uppercase, lowercase and special character.');
-      return false;
+    if (form.role === 'alumni' && !form.graduationYear) {
+      toast.error('Please select your graduation year'); return false;
     }
-
-    if (formData.role === 'student') {
-      if (!formData.currentYear || !formData.enrollmentYear) {
-        toast.error('Please fill all student-specific fields!');
-        return false;
-      }
-    } else if (formData.role === 'alumni') {
-      if (!formData.graduationYear) {
-        toast.error('Please fill all alumni-specific fields!');
-        return false;
-      }
-    }
-
     return true;
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
+    if (!validate()) return;
+    setLoading(true);
 
-    if (!validateForm()) return;
-
-    setIsLoading(true);
-
-    const button = e.target.querySelector('button[type="submit"]');
-    if (button) {
-      button.style.transform = 'scale(0.95)';
-      setTimeout(() => {
-        button.style.transform = 'scale(1)';
-      }, 100);
-    }
-
-    const dataToSend = {
-      name: formData.name,
-      email: formData.email,
-      mobileNumber: formData.mobileNumber,
-      password: formData.password,
-      role: formData.role,
-      department: formData.department
+    // FIXED: send 'phoneNumber' (backend field name), not 'mobileNumber'
+    // FIXED: removed 'batchYear' — not in backend schema
+    const payload = {
+      name:        form.name.trim(),
+      email:       form.email.trim(),
+      phoneNumber: form.phoneNumber,   // ← was 'mobileNumber' — backend ignored it
+      password:    form.password,
+      role:        form.role,
+      department:  form.department,
+      studentId:   form.studentId || undefined,
     };
 
-    if (formData.role === 'student') {
-      dataToSend.studentId = formData.studentId;
-      dataToSend.currentYear = parseInt(formData.currentYear);
-      dataToSend.enrollmentYear = parseInt(formData.enrollmentYear);
-      dataToSend.batchYear = parseInt(formData.batchYear);
-    } else if (formData.role === 'alumni') {
-      dataToSend.studentId = formData.studentId;
-      dataToSend.graduationYear = parseInt(formData.graduationYear);
-      dataToSend.currentCompany = formData.currentCompany;
-      dataToSend.currentPosition = formData.currentPosition;
-      dataToSend.batchYear = parseInt(formData.batchYear);
+    if (form.role === 'student') {
+      payload.currentYear    = +form.currentYear;
+      payload.enrollmentYear = +form.enrollmentYear;
+    } else {
+      payload.graduationYear  = +form.graduationYear;
+      payload.currentCompany  = form.currentCompany  || undefined;
+      payload.currentPosition = form.currentPosition || undefined;
     }
-
-    console.log('Sending registration data:', dataToSend);
 
     try {
-      const result = await register(dataToSend);
-
+      const result = await register(payload);
       if (result.success) {
-        toast.success('🎉 Registration successful! Welcome aboard!', {
-          position: "top-right",
-          autoClose: 3000,
-        });
+        toast.success('🎉 Welcome aboard! Account created.');
         navigate('/dashboard');
       } else {
-        toast.error(result.error || 'Registration failed');
+        toast.error(result.error || 'Registration failed. Please try again.');
       }
-    } catch (err) {
-      console.error('Registration error:', err);
-      toast.error('An unexpected error occurred');
+    } catch {
+      toast.error('An unexpected error occurred. Please try again.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
-  };
-
-  const renderRoleSpecificFields = () => {
-    if (formData.role === 'student') {
-      return (
-        <>
-          <div className="animate-slide-in-left">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Student ID
-            </label>
-            <input
-              type="text"
-              name="studentId"
-              value={formData.studentId}
-              onChange={handleInputChange}
-              className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-              placeholder="Enter your student ID"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="animate-slide-in-left">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Current Year *
-              </label>
-              <select
-                name="currentYear"
-                value={formData.currentYear}
-                onChange={handleInputChange}
-                className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                required
-              >
-                <option value="">Select Year</option>
-                {[1, 2, 3, 4, 5, 6, 7, 8].map(year => (
-                  <option key={year} value={year} className="bg-white">
-                    Year {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="animate-slide-in-right">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Enrollment Year *
-              </label>
-              <select
-                name="enrollmentYear"
-                value={formData.enrollmentYear}
-                onChange={handleInputChange}
-                className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                required
-              >
-                <option value="">Select Year</option>
-                {years.map(year => (
-                  <option key={year} value={year} className="bg-white">
-                    {year}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </>
-      );
-    } else if (formData.role === 'alumni') {
-      return (
-        <>
-          <div className="animate-slide-in-left">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Student ID
-            </label>
-            <input
-              type="text"
-              name="studentId"
-              value={formData.studentId}
-              onChange={handleInputChange}
-              className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-              placeholder="Enter your student ID"
-            />
-          </div>
-
-          <div className="animate-slide-in-right">
-            <label className="block text-gray-700 text-sm font-medium mb-2">
-              Graduation Year *
-            </label>
-            <select
-              name="graduationYear"
-              value={formData.graduationYear}
-              onChange={handleInputChange}
-              className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-              required
-            >
-              <option value="">Select Year</option>
-              {years.map(year => (
-                <option key={year} value={year} className="bg-white">
-                  {year}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="animate-slide-in-left">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Current Company
-              </label>
-              <div className="relative">
-                <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  name="currentCompany"
-                  value={formData.currentCompany}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                  placeholder="Enter your current company"
-                />
-              </div>
-            </div>
-
-            <div className="animate-slide-in-right">
-              <label className="block text-gray-700 text-sm font-medium mb-2">
-                Current Position
-              </label>
-              <input
-                type="text"
-                name="currentPosition"
-                value={formData.currentPosition}
-                onChange={handleInputChange}
-                className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                placeholder="Enter your current position"
-              />
-            </div>
-          </div>
-        </>
-      );
-    }
-    return null;
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-4 relative overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 50%, #e2e8f0 100%)'
-      }}
-    >
-      {/* Animated Background Elements - Subtle and professional */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Floating geometric shapes - Subtle gray tones */}
-        <div
-          className="floating-element absolute top-1/4 left-1/4 w-8 h-8 border border-gray-300/30 rounded-lg transition-transform duration-1000"
-        ></div>
-        <div
-          className="floating-element absolute top-1/3 right-1/4 w-6 h-6 border border-gray-300/30 rounded-full transition-transform duration-1000"
-        ></div>
-        <div
-          className="floating-element absolute bottom-1/4 left-1/3 w-10 h-10 border border-gray-300/30 rotate-45 transition-transform duration-1000"
-        ></div>
-        <div
-          className="floating-element absolute bottom-1/3 right-1/3 w-12 h-12 border border-gray-300/30 rounded-full transition-transform duration-1000"
-        ></div>
-
-        {/* Subtle gradient orbs */}
-        <div className="absolute top-0 left-0 w-72 h-72 bg-gradient-to-r from-gray-100/30 to-gray-200/30 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-gradient-to-r from-gray-100/30 to-gray-200/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+      {/* Background glow */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-200/30 rounded-full blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl" />
       </div>
 
-      <div className="w-full max-w-2xl relative z-10">
-        <div
-          className={`
-            bg-white backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 p-8 
-            hover:border-gray-300 transition-all duration-500
-            ${isVisible ? 'animate-fade-in-up' : 'opacity-0 translate-y-10'}
-          `}
-          style={{
-            animation: 'fadeInUp 0.8s ease-out'
-          }}
-        >
+      <div className="w-full max-w-lg relative z-10">
+        <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/60 p-7">
+
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="relative inline-block mb-4 animate-bounce-gentle">
-              <div className="relative w-20 h-20 bg-gradient-to-r from-gray-900 to-gray-700 rounded-full flex items-center justify-center mx-auto shadow-lg">
-                <Users className="w-10 h-10 text-white" />
-                <div className="absolute inset-0 border border-gray-400/30 rounded-full animate-ping opacity-30"></div>
-              </div>
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
+              <GraduationCap className="w-7 h-7 text-white" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2 animate-fade-in">
-              Create Your Account
-            </h2>
-            <p className="text-gray-600 animate-fade-in-delay">
-              Join the network to connect with fellow alumni and students
-            </p>
+            <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
+            <p className="text-sm text-gray-500 mt-1">Join your alumni network</p>
           </div>
 
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300"></div>
-            </div>
-          </div>
-
-          {/* Error Message */}
+          {/* Server error banner */}
           {error && (
-            <div className="error-message mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center space-x-2">
-              <AlertCircle className="w-5 h-5 text-red-500" />
-              <span className="text-red-700 text-sm">{error}</span>
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-sm text-red-700">
+              <AlertCircle className="w-4 h-4 shrink-0" />{error}
             </div>
           )}
 
-          {/* Registration Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Role Selection */}
-            <div className="animate-fade-in">
-              <label className="block text-gray-700 text-sm font-medium mb-3">
-                I am a... *
-              </label>
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            {/* Role selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">I am a…</label>
               <div className="grid grid-cols-2 gap-3">
-                {roles.map((role) => {
-                  const IconComponent = role.icon;
-                  return (
-                    <button
-                      key={role.value}
-                      type="button"
-                      onClick={() => handleRoleChange(role.value)}
-                      className={`p-4 rounded-xl border-2 transition-all duration-200 transform hover:scale-105 ${
-                        formData.role === role.value
-                          ? 'bg-gray-50 border-gray-900 shadow-lg scale-105'
-                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
-                      }`}
-                    >
-                      <IconComponent className={`w-6 h-6 mx-auto mb-2 ${
-                        formData.role === role.value ? 'text-gray-900' : 'text-gray-600'
-                      }`} />
-                      <span className={`text-sm font-medium ${
-                        formData.role === role.value ? 'text-gray-900' : 'text-gray-600'
-                      }`}>
-                        {role.label}
-                      </span>
-                    </button>
-                  );
-                })}
+                {[
+                  { v: 'student', label: 'Student',  Icon: User          },
+                  { v: 'alumni',  label: 'Alumni',   Icon: GraduationCap }
+                ].map(({ v, label, Icon }) => (
+                  <button key={v} type="button" onClick={() => roleChange(v)}
+                    className={`flex flex-col items-center py-3 rounded-xl border-2 text-sm font-semibold transition-all
+                      ${form.role === v
+                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md'
+                        : 'border-gray-200 text-gray-600 hover:border-indigo-300'}`}>
+                    <Icon className="w-5 h-5 mb-1" />{label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Basic Info */}
-            <div className="space-y-4">
-              <h3 className="text-gray-900 text-lg font-semibold animate-slide-in-left">Full Name</h3>
-              <div className="animate-slide-in-left">
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                    placeholder="Enter your full name"
-                    required
-                  />
-                </div>
-              </div>
+            {/* Full Name */}
+            <Field label="Full Name *" icon={User}>
+              <input name="name" value={form.name} onChange={change} placeholder="Your full name" required />
+            </Field>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="animate-slide-in-left">
-                  <h3 className="text-gray-900 text-lg font-semibold mb-2">Email Address</h3>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="email"
-                      name="email"
-                      value={formData.email}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                      placeholder="you@example.com"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="animate-slide-in-right">
-                  <h3 className="text-gray-900 text-lg font-semibold mb-2">Mobile Number</h3>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input
-                      type="tel"
-                      name="mobileNumber"
-                      value={formData.mobileNumber}
-                      onChange={handleInputChange}
-                      className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                      placeholder="Enter your mobile number"
-                    />
-                  </div>
-                </div>
-              </div>
+            {/* Email + Phone */}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Email *" icon={Mail}>
+                <input name="email" type="email" value={form.email} onChange={change} placeholder="you@example.com" required />
+              </Field>
+              {/* FIXED: field name is now 'phoneNumber' matching backend */}
+              <Field label="Mobile" icon={Phone}>
+                <input name="phoneNumber" type="tel" value={form.phoneNumber} onChange={change} placeholder="+91 ..." />
+              </Field>
             </div>
 
-            {/* Password Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="animate-slide-in-left">
-                <h3 className="text-gray-900 text-lg font-semibold mb-2">Create Password</h3>
+            {/* Password + Confirm */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    name="password"
-                    value={formData.password}
-                    onChange={(e) => {
-                      handleInputChange(e);
-                      validatePasswordStrength(e.target.value); // NEW
-                    }}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 pr-12 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                    placeholder="Enter a strong password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors duration-200"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type={showPwd ? 'text' : 'password'} name="password" value={form.password} onChange={change}
+                    className={`${inputBase} pl-9 pr-9`} placeholder="Min 6 chars" required />
+                  <button type="button" onClick={() => setShowPwd(!showPwd)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
-
-                {/* NEW: Password checklist */}
-                {formData.password && (
-                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-1 text-xs md:text-sm">
-                    <div className="font-medium text-gray-700 mb-1">Password must contain:</div>
-
-                    <div className={`flex items-center ${passwordStrength.hasMinLength ? 'text-green-600' : 'text-gray-500'}`}>
-                      <span className="mr-1">{passwordStrength.hasMinLength ? '✓' : '○'}</span>
-                      At least 8 characters
-                    </div>
-                    <div className={`flex items-center ${passwordStrength.hasUpperCase ? 'text-green-600' : 'text-gray-500'}`}>
-                      <span className="mr-1">{passwordStrength.hasUpperCase ? '✓' : '○'}</span>
-                      One uppercase letter (A‑Z)
-                    </div>
-                    <div className={`flex items-center ${passwordStrength.hasLowerCase ? 'text-green-600' : 'text-gray-500'}`}>
-                      <span className="mr-1">{passwordStrength.hasLowerCase ? '✓' : '○'}</span>
-                      One lowercase letter (a‑z)
-                    </div>
-                    <div className={`flex items-center ${passwordStrength.hasSpecialChar ? 'text-green-600' : 'text-gray-500'}`}>
-                      <span className="mr-1">{passwordStrength.hasSpecialChar ? '✓' : '○'}</span>
-                      One special character (!@#$%^&*)
-                    </div>
-                  </div>
-                )}
               </div>
-
-              <div className="animate-slide-in-right">
-                <h3 className="text-gray-900 text-lg font-semibold mb-2">Confirm Password</h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm *</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 pr-12 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                    placeholder="Confirm your password"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-700 transition-colors duration-200"
-                  >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input type={showConfirm ? 'text' : 'password'} name="confirmPassword" value={form.confirmPassword} onChange={change}
+                    className={`${inputBase} pl-9 pr-9`} placeholder="Repeat password" required />
+                  <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Department and Batch Year */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="animate-slide-in-left">
-                <h3 className="text-gray-900 text-lg font-semibold mb-2">Department</h3>
-                <select
-                  name="department"
-                  value={formData.department}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-4 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                  required
-                >
-                  <option value="">Select Department</option>
-                  {departments.map(dept => (
-                    <option key={dept} value={dept} className="bg-white">
-                      {dept}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Department */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+              <select name="department" value={form.department} onChange={change}
+                className={`${inputBase} pl-3`} required>
+                <option value="">Select department</option>
+                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+              </select>
+            </div>
 
-              <div className="animate-slide-in-right">
-                <h3 className="text-gray-900 text-lg font-semibold mb-2">Batch Year</h3>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <select
-                    name="batchYear"
-                    value={formData.batchYear}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-50 border border-gray-300 rounded-xl py-3 px-10 text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent transition-all duration-300 hover:border-gray-400"
-                  >
-                    <option value="">Select Year</option>
-                    {years.map(year => (
-                      <option key={year} value={year} className="bg-white">
-                        {year}
-                      </option>
-                    ))}
+            {/* Student-specific fields */}
+            {form.role === 'student' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Year *</label>
+                  <select name="currentYear" value={form.currentYear} onChange={change}
+                    className={`${inputBase} pl-3`} required>
+                    <option value="">Select</option>
+                    {[1,2,3,4,5,6].map(y => <option key={y} value={y}>Year {y}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment Year *</label>
+                  <select name="enrollmentYear" value={form.enrollmentYear} onChange={change}
+                    className={`${inputBase} pl-3`} required>
+                    <option value="">Select</option>
+                    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
                   </select>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Role-specific Fields */}
-            {renderRoleSpecificFields()}
+            {/* Alumni-specific fields */}
+            {form.role === 'alumni' && (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Graduation Year *</label>
+                    <select name="graduationYear" value={form.graduationYear} onChange={change}
+                      className={`${inputBase} pl-3`} required>
+                      <option value="">Select</option>
+                      {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
+                    <input name="studentId" value={form.studentId} onChange={change}
+                      className={`${inputBase} pl-3`} placeholder="Optional" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Current Company" icon={Building}>
+                    <input name="currentCompany" value={form.currentCompany} onChange={change} placeholder="e.g. Google" />
+                  </Field>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Current Position</label>
+                    <input name="currentPosition" value={form.currentPosition} onChange={change}
+                      className={`${inputBase} pl-3`} placeholder="e.g. Engineer" />
+                  </div>
+                </div>
+              </div>
+            )}
 
-            {/* Submit Button */}
-            <div className="animate-fade-in-delay-3">
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-gray-900 text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 focus:ring-offset-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 relative overflow-hidden group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-
-                {isLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                    <span>Creating Account...</span>
-                  </>
-                ) : (
-                  <>
-                    <User className="w-5 h-5" />
-                    <span>Register</span>
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Submit */}
+            <button type="submit" disabled={loading}
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+              {loading
+                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Creating…</>
+                : 'Create Account'}
+            </button>
           </form>
 
-          {/* Links */}
-          <div className="mt-6 text-center animate-fade-in-delay-4">
-            <div className="text-gray-600 text-sm">
-              Already have an account?{' '}
-              <Link
-                to="/login"
-                className="text-gray-900 hover:text-gray-700 font-medium transition-colors hover:underline"
-              >
-                Login
-              </Link>
-            </div>
-          </div>
+          <p className="text-center text-sm text-gray-500 mt-4">
+            Already have an account?{' '}
+            <Link to="/login" className="font-semibold text-indigo-600 hover:text-indigo-700">Sign in</Link>
+          </p>
         </div>
       </div>
-
-      {/* Add custom animations to your CSS */}
-      <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-10px); }
-          75% { transform: translateX(10px); }
-        }
-
-        @keyframes bounceGentle {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-8px); }
-        }
-
-        @keyframes slideInLeft {
-          from {
-            opacity: 0;
-            transform: translateX(-30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes slideInRight {
-          from {
-            opacity: 0;
-            transform: translateX(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .animate-fade-in-up {
-          animation: fadeInUp 0.8s ease-out;
-        }
-
-        .animate-fade-in {
-          animation: fadeInUp 0.6s ease-out 0.2s both;
-        }
-
-        .animate-fade-in-delay {
-          animation: fadeInUp 0.6s ease-out 0.4s both;
-        }
-
-        .animate-slide-in-left {
-          animation: slideInLeft 0.6s ease-out 0.6s both;
-        }
-
-        .animate-slide-in-right {
-          animation: slideInRight 0.6s ease-out 0.8s both;
-        }
-
-        .animate-fade-in-delay-3 {
-          animation: fadeInUp 0.6s ease-out 1.2s both;
-        }
-
-        .animate-fade-in-delay-4 {
-          animation: fadeInUp 0.6s ease-out 1.6s both;
-        }
-
-        .animate-bounce-gentle {
-          animation: bounceGentle 3s ease-in-out infinite;
-        }
-
-        .error-message {
-          animation: shake 0.5s ease-in-out;
-        }
-      `}</style>
     </div>
   );
-};
-
-export default Register;
+}

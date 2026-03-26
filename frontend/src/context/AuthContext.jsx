@@ -1,15 +1,10 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback, useRef } from 'react';
 import axios from 'axios';
 
-// Get API URL from environment variable
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Create axios instance with base URL
-const api = axios.create({
-  baseURL: API_URL
-});
+const api = axios.create({ baseURL: API_URL });
 
-// Initial state
 const initialState = {
   user: null,
   token: localStorage.getItem('token'),
@@ -17,7 +12,6 @@ const initialState = {
   error: null
 };
 
-// Actions
 const AUTH_ACTIONS = {
   LOGIN_SUCCESS: 'LOGIN_SUCCESS',
   LOGOUT: 'LOGOUT',
@@ -27,203 +21,138 @@ const AUTH_ACTIONS = {
   UPDATE_USER: 'UPDATE_USER'
 };
 
-// Reducer
 const authReducer = (state, action) => {
   switch (action.type) {
     case AUTH_ACTIONS.LOGIN_SUCCESS:
-      return {
-        ...state,
-        user: action.payload.user,
-        token: action.payload.token,
-        loading: false,
-        error: null
-      };
+      return { ...state, user: action.payload.user, token: action.payload.token, loading: false, error: null };
     case AUTH_ACTIONS.LOGOUT:
-      return {
-        ...state,
-        user: null,
-        token: null,
-        loading: false,
-        error: null
-      };
+      return { ...state, user: null, token: null, loading: false, error: null };
     case AUTH_ACTIONS.SET_LOADING:
-      return {
-        ...state,
-        loading: action.payload
-      };
+      return { ...state, loading: action.payload };
     case AUTH_ACTIONS.SET_ERROR:
-      return {
-        ...state,
-        error: action.payload,
-        loading: false
-      };
+      return { ...state, error: action.payload, loading: false };
     case AUTH_ACTIONS.CLEAR_ERROR:
-      return {
-        ...state,
-        error: null
-      };
+      return { ...state, error: null };
     case AUTH_ACTIONS.UPDATE_USER:
-      return {
-        ...state,
-        user: { ...state.user, ...action.payload }
-      };
+      return { ...state, user: { ...state.user, ...action.payload } };
     default:
       return state;
   }
 };
 
-// Create context
 const AuthContext = createContext();
 
-// Set up axios interceptor
-const setupAxiosInterceptor = (token, dispatch) => {
-  if (token) {
-    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete api.defaults.headers.common['Authorization'];
-  }
-
-  // Clear existing interceptors to avoid duplicates
-  api.interceptors.response.clear();
-
-  // Response interceptor for handling token expiration
-  api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-      if (error.response?.status === 401) {
-        dispatch({ type: AUTH_ACTIONS.LOGOUT });
-        localStorage.removeItem('token');
-        delete api.defaults.headers.common['Authorization'];
-      }
-      return Promise.reject(error);
-    }
-  );
-};
-
-// Auth Provider Component
 export const AuthProvider = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState);
+  // Track interceptor ID so we can eject and re-register without stacking
+  const interceptorRef = useRef(null);
 
-  // Load user on app start
+  const setupAxios = useCallback((token) => {
+    if (token) {
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete api.defaults.headers.common['Authorization'];
+    }
+
+    // Eject old interceptor before adding new one
+    if (interceptorRef.current !== null) {
+      api.interceptors.response.eject(interceptorRef.current);
+    }
+
+    interceptorRef.current = api.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          delete api.defaults.headers.common['Authorization'];
+          dispatch({ type: AUTH_ACTIONS.LOGOUT });
+        }
+        return Promise.reject(error);
+      }
+    );
+  }, []);
+
+  // Load user on mount
   useEffect(() => {
     const loadUser = async () => {
       const token = localStorage.getItem('token');
-      
       if (!token) {
         dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
         return;
       }
-
+      setupAxios(token);
       try {
-        setupAxiosInterceptor(token, dispatch);
         const response = await api.get('/api/auth/profile');
-        
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
-          payload: {
-            user: response.data.user,
-            token
-          }
+          payload: { user: response.data.user, token }
         });
-      } catch (error) {
-        console.error('Failed to load user:', error);
+      } catch {
         localStorage.removeItem('token');
         dispatch({ type: AUTH_ACTIONS.LOGOUT });
       }
     };
-
     loadUser();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // FIXED: use useCallback so clearError has a stable reference
+  // Without this, Login.jsx's useEffect([clearError]) fires on every render → infinite loop
+  const clearError = useCallback(() => {
+    dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
   }, []);
 
-  // Login function
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     try {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
-
-      const response = await api.post('/api/auth/login', {
-        email,
-        password
-      });
-
+      const response = await api.post('/api/auth/login', { email, password });
       const { token, user } = response.data;
-      
-      // Store token
       localStorage.setItem('token', token);
-      setupAxiosInterceptor(token, dispatch);
-
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: { user, token }
-      });
-
+      setupAxios(token);
+      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user, token } });
       return { success: true, user, token };
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Login failed';
       dispatch({ type: AUTH_ACTIONS.SET_ERROR, payload: errorMessage });
       return { success: false, error: errorMessage };
     }
-  };
+  }, [setupAxios]);
 
-  // Register function
-  const register = async (userData) => {
+  const register = useCallback(async (userData) => {
     try {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
-
-      console.log('AuthContext: Sending registration request with data:', userData);
-      
       const response = await api.post('/api/auth/register', userData);
       const { token, user } = response.data;
-      
-      console.log('AuthContext: Registration successful:', response.data);
-      
-      // Store token
       localStorage.setItem('token', token);
-      setupAxiosInterceptor(token, dispatch);
-
-      dispatch({
-        type: AUTH_ACTIONS.LOGIN_SUCCESS,
-        payload: { user, token }
-      });
-
+      setupAxios(token);
+      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user, token } });
       return { success: true, user, token };
     } catch (error) {
-      console.error('AuthContext: Registration error:', error);
-      console.error('AuthContext: Error response:', error.response?.data);
-      
-      const errorMessage = error.response?.data?.message || error.response?.data?.errors?.[0]?.msg || 'Registration failed';
+      const errorMessage =
+        error.response?.data?.message ||
+        error.response?.data?.errors?.[0]?.msg ||
+        'Registration failed';
       dispatch({ type: AUTH_ACTIONS.SET_ERROR, payload: errorMessage });
       return { success: false, error: errorMessage };
     }
-  };
+  }, [setupAxios]);
 
-  // Logout function
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     delete api.defaults.headers.common['Authorization'];
     dispatch({ type: AUTH_ACTIONS.LOGOUT });
-  };
+  }, []);
 
-  // Update profile function
-  const updateProfile = async (userData) => {
+  const updateProfile = useCallback(async (userData) => {
     try {
       const response = await api.put('/api/auth/profile', userData);
-      dispatch({
-        type: AUTH_ACTIONS.UPDATE_USER,
-        payload: response.data.user
-      });
+      dispatch({ type: AUTH_ACTIONS.UPDATE_USER, payload: response.data.user });
       return { success: true, user: response.data.user };
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Profile update failed';
-      return { success: false, error: errorMessage };
+      return { success: false, error: error.response?.data?.message || 'Profile update failed' };
     }
-  };
-
-  // Clear error function
-  const clearError = () => {
-    dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
-  };
+  }, []);
 
   const value = {
     user: state.user,
@@ -238,21 +167,13 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!state.token && !!state.user
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
-// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };
 
-// Export the configured axios instance for use in other components
 export { api };

@@ -1,218 +1,93 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-
-// Context
-import { AuthProvider, useAuth } from './context/AuthContext';
-
-// Auth Components
-import Login from './components/Auth/Login';
-import Register from './components/Auth/Register';
-
-// Dashboards
-import StudentDashboard from './components/Dashboard/StudentDashboard';
-import AlumniDashboard from './components/Dashboard/AlumniDashboard';
-import AdminDashboard from './components/Dashboard/AdminDashboard';
-
-// Common Components
+import { useAuth } from './context/AuthContext';
+import Navbar from './components/Layout/Navbar';
+import Footer from './components/Layout/Footer';
 import Loader from './components/Common/Loader';
-import Chatbot from './components/Common/Chatbot';
-
-// Messaging
-import MessagingPage from './components/Messaging/MessagingPage.jsx';
-
-// AI Components
-import MentorSuggestions from './components/AI/MentorSuggestions';
-import SetupProfile from './components/AI/SetupProfile';
-import MentorshipDashboard from './components/AI/MentorshipDashboard';
-
-// Alumni Profiles
-import ProfilesList from './components/Profiles/ProfilesList';
-import AlumniProfilePage from './components/Profiles/AlumniProfilePage';
-
-// 🔥 Job Board Page
-import JobBoard from './pages/JobBoard';
-
-// Utils
 import PrivateRoute from './utils/PrivateRoute';
 
-/* =========================
-   Dashboard Router
-========================= */
+import Login    from './components/Auth/Login';
+import Register from './components/Auth/Register';
+
+import StudentDashboard from './components/Dashboard/StudentDashboard';
+import AlumniDashboard  from './components/Dashboard/AlumniDashboard';
+import AdminDashboard   from './components/Dashboard/AdminDashboard';
+
+import JobsList         from './components/Jobs/JobsList';
+import MessagingPage    from './components/Messaging/MessagingPage';
+import ProfilesList     from './components/Profiles/ProfilesList';
+import AlumniProfilePage from './components/Profiles/AlumniProfilePage';
+import MentorSuggestions  from './components/AI/MentorSuggestions';
+import SetupProfile       from './components/AI/SetupProfile';
+import MentorshipDashboard from './components/AI/MentorshipDashboard';
+import VerificationRequest from './components/Verification/VerificationRequest';
+import PendingApproval     from './components/Verification/PendingApproval';
+import CommunitiesPage  from './components/Community/CommunitiesPage';
+import MeetingsPage     from './components/Meetings/MeetingsPage';
+import InsightsPage     from './components/Insights/InsightsPage';
+
 const DashboardRouter = () => {
   const { user } = useAuth();
-
-  switch (user?.role) {
-    case 'student':
-      return <StudentDashboard />;
-    case 'alumni':
-      return <AlumniDashboard />;
-    case 'admin':
-      return <AdminDashboard />;
-    default:
-      return <Navigate to="/login" replace />;
-  }
+  if (user?.role === 'student') return <StudentDashboard />;
+  if (user?.role === 'alumni')  return <AlumniDashboard />;
+  if (user?.role === 'admin')   return <AdminDashboard />;
+  return <Navigate to="/login" replace />;
 };
 
-/* =========================
-   Unauthorized Page
-========================= */
-const UnauthorizedPage = () => (
-  <div className="min-h-screen flex items-center justify-center bg-red-50">
+const NotFound = () => (
+  <div className="min-h-[60vh] flex items-center justify-center">
     <div className="text-center">
-      <div className="text-6xl mb-4">🚫</div>
-      <h1 className="text-3xl font-bold text-red-600">Access Denied</h1>
-      <p className="text-red-500 mt-2">You don't have permission to access this page.</p>
+      <p className="text-6xl font-bold text-violet-600 mb-4">404</p>
+      <h1 className="text-2xl font-bold text-gray-900 mb-2">Page not found</h1>
+      <p className="text-gray-500 mb-6">The page you're looking for doesn't exist.</p>
+      <a href="/dashboard" className="btn-primary">Go Home</a>
     </div>
   </div>
 );
 
-/* =========================
-   App Content
-========================= */
-const AppContent = () => {
+function AppContent() {
   const { loading, isAuthenticated } = useAuth();
-
-  if (loading) {
-    return <Loader />;
-  }
+  const location = useLocation();
+  if (loading) return <Loader />;
+  const isAuthPage = ['/login', '/register'].includes(location.pathname);
 
   return (
-    <div className="App">
-      <Routes>
-
-        {/* ===== Public Routes ===== */}
-        <Route
-          path="/login"
-          element={
-            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />
-          }
-        />
-
-        {/* ===== Dashboard ===== */}
-        <Route
-          path="/dashboard/*"
-          element={
-            <PrivateRoute>
-              <DashboardRouter />
-            </PrivateRoute>
-          }
-        />
-
-        {/* ===== Job Board ===== */}
-        <Route
-          path="/jobs"
-          element={
-            <PrivateRoute>
-              <JobBoard />
-            </PrivateRoute>
-          }
-        />
-
-        {/* ===== Messaging ===== */}
-        <Route
-          path="/messages"
-          element={
-            <PrivateRoute>
-              <MessagingPage />
-            </PrivateRoute>
-          }
-        />
-
-        {/* ===== Alumni Directory ===== */}
-        <Route
-          path="/alumni-directory"
-          element={
-            <PrivateRoute>
-              <ProfilesList />
-            </PrivateRoute>
-          }
-        />
-
-        <Route
-          path="/alumni/:id"
-          element={
-            <PrivateRoute>
-              <AlumniProfilePage />
-            </PrivateRoute>
-          }
-        />
-
-        {/* ===== AI Mentorship ===== */}
-        <Route
-          path="/ai-matching"
-          element={
-            <PrivateRoute>
-              <MentorSuggestions />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/setup-profile"
-          element={
-            <PrivateRoute>
-              <SetupProfile />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/mentorships"
-          element={
-            <PrivateRoute>
-              <MentorshipDashboard />
-            </PrivateRoute>
-          }
-        />
-
-        {/* ===== Unauthorized ===== */}
-        <Route path="/unauthorized" element={<UnauthorizedPage />} />
-
-        {/* ===== Default ===== */}
-        <Route
-          path="/"
-          element={
-            isAuthenticated
-              ? <Navigate to="/dashboard" replace />
-              : <Navigate to="/login" replace />
-          }
-        />
-
-        {/* ===== Catch All ===== */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-
-      </Routes>
-
-      {/* Global Chatbot */}
-      {isAuthenticated && <Chatbot />}
-
-      {/* Toasts */}
-      <ToastContainer
-        position="top-right"
-        autoClose={5000}
-        theme="colored"
-      />
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      {isAuthenticated && !isAuthPage && <Navbar />}
+      <main className={`flex-1 flex flex-col ${isAuthenticated && !isAuthPage ? 'pt-16' : ''}`}>
+        <Routes>
+          <Route path="/login"    element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
+          <Route path="/register" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Register />} />
+          <Route path="/dashboard/*" element={<PrivateRoute><DashboardRouter /></PrivateRoute>} />
+          <Route path="/jobs"           element={<PrivateRoute><JobsList /></PrivateRoute>} />
+          <Route path="/messages"       element={<PrivateRoute><MessagingPage /></PrivateRoute>} />
+          <Route path="/alumni-directory" element={<PrivateRoute><ProfilesList /></PrivateRoute>} />
+          <Route path="/alumni/:id"     element={<PrivateRoute><AlumniProfilePage /></PrivateRoute>} />
+          <Route path="/ai-matching"    element={<PrivateRoute><MentorSuggestions /></PrivateRoute>} />
+          <Route path="/setup-profile"  element={<PrivateRoute><SetupProfile /></PrivateRoute>} />
+          <Route path="/mentorships"    element={<PrivateRoute><MentorshipDashboard /></PrivateRoute>} />
+          <Route path="/verify"         element={<PrivateRoute><VerificationRequest /></PrivateRoute>} />
+          <Route path="/verification-status" element={<PrivateRoute><PendingApproval /></PrivateRoute>} />
+          <Route path="/communities"    element={<PrivateRoute><CommunitiesPage /></PrivateRoute>} />
+          <Route path="/meetings"       element={<PrivateRoute><MeetingsPage /></PrivateRoute>} />
+          <Route path="/insights"       element={<PrivateRoute><InsightsPage /></PrivateRoute>} />
+          <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </main>
+      {isAuthenticated && !isAuthPage && <Footer />}
+      <ToastContainer position="top-right" autoClose={3500} theme="light"
+        toastClassName="!rounded-2xl !shadow-lg !border !border-gray-100 !font-sans" />
     </div>
-  );
-};
-
-/* =========================
-   Main App
-========================= */
-function App() {
-  return (
-    <AuthProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </AuthProvider>
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <Router>
+      <AppContent />
+    </Router>
+  );
+}

@@ -1,582 +1,198 @@
-// frontend/src/components/Profiles/SetupProfile.jsx
-// COMPLETE FIXED VERSION
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth, api } from '../../context/AuthContext'; // Import 'api' from AuthContext
-import { User, Briefcase, Target, Award, MapPin, Linkedin, Github, Tag } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { userAPI } from '../../services/api.jsx';
+import { toast } from 'react-toastify';
+import { User, Briefcase, Code, Target, Save, Loader, Plus, X, BookOpen, Globe, Linkedin, Github } from 'lucide-react';
 
-const SetupProfile = () => {
-  const { user, updateProfile } = useAuth(); // Use updateProfile, not updateUser
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    profileHeadline: '',
-    bio: '',
-    location: '',
-    skills: [],
-    interests: [],
-    linkedinUrl: '',
-    githubUrl: '',
-    // Student fields
-    currentYear: '',
-    enrollmentYear: '',
-    careerGoals: [],
-    industryPreferences: [],
-    lookingForMentor: false,
-    // Alumni fields
-    currentPosition: '',
-    currentCompany: '',
-    industry: '',
-    graduationYear: '',
-    availableAsMentor: false,
-    mentorshipAreas: [],
-    yearsOfExperience: 0
-  });
+const SKILLS_SUGGESTIONS = ['React','Node.js','Python','JavaScript','Java','C++','Machine Learning','Data Science','Cloud Computing','DevOps','UI/UX','Product Management'];
+const INDUSTRIES = ['Technology','Finance','Healthcare','Education','E-commerce','Consulting','Manufacturing','Media','Government','Startup'];
 
-  const [skillInput, setSkillInput] = useState('');
-  const [interestInput, setInterestInput] = useState('');
-  const [careerGoalInput, setCareerGoalInput] = useState('');
-  const [industryPrefInput, setIndustryPrefInput] = useState('');
-  const [mentorshipAreaInput, setMentorshipAreaInput] = useState('');
+function TagInput({ tags, onAdd, onRemove, placeholder, suggestions = [] }) {
+  const [input, setInput] = useState('');
+  const [showSugg, setShowSugg] = useState(false);
+  const filtered = suggestions.filter(s => s.toLowerCase().includes(input.toLowerCase()) && !tags.includes(s));
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      // Use the configured 'api' instance from AuthContext
-      const { data } = await api.get('/api/ai-matching/profile');
-      if (data.user.profile) {
-        setFormData({
-          ...formData,
-          ...data.user.profile
-        });
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-    }
+  const add = (val) => {
+    const v = val.trim();
+    if (v && !tags.includes(v)) { onAdd(v); }
+    setInput(''); setShowSugg(false);
   };
-
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === 'checkbox' ? checked : value
-    });
-  };
-
-  const addToArray = (field, value, setInput) => {
-    if (value.trim()) {
-      setFormData({
-        ...formData,
-        [field]: [...(formData[field] || []), value.trim()]
-      });
-      setInput('');
-    }
-  };
-
-  const removeFromArray = (field, index) => {
-    setFormData({
-      ...formData,
-      [field]: formData[field].filter((_, i) => i !== index)
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-
-    try {
-      console.log('Submitting profile data:', formData);
-      
-      // Use the configured 'api' instance from AuthContext
-      const { data } = await api.put('/api/ai-matching/profile', formData);
-      
-      console.log('Profile saved successfully:', data);
-      
-      // Profile saved successfully! No need to call updateProfile again
-      // The response already contains the updated user data
-      alert('Profile updated successfully!');
-      navigate('/dashboard');
-      
-    } catch (error) {
-      console.error('Error updating profile:', error);
-      alert('Failed to update profile: ' + (error.response?.data?.message || error.message));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const isStudent = user?.role === 'student';
-  const isAlumni = user?.role === 'alumni';
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Your Profile</h1>
-          <p className="text-gray-600 mb-6">
-            {isStudent 
-              ? 'Tell us about yourself to connect with alumni mentors'
-              : 'Share your professional journey to help guide students'
-            }
-          </p>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Basic Information */}
-            <div className="border-b pb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <User className="w-5 h-5 mr-2 text-blue-600" />
-                Basic Information
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Profile Headline
-                  </label>
-                  <input
-                    type="text"
-                    name="profileHeadline"
-                    value={formData.profileHeadline}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={isStudent ? "e.g., Computer Science Student" : "e.g., Software Engineer"}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Bio
-                  </label>
-                  <textarea
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Tell us about yourself..."
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Location
-                  </label>
-                  <input
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., Pune, India"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Skills */}
-            <div className="border-b pb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <Award className="w-5 h-5 mr-2 text-blue-600" />
-                Skills
-              </h2>
-              
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  value={skillInput}
-                  onChange={(e) => setSkillInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addToArray('skills', skillInput, setSkillInput))}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., JavaScript, Python, React"
-                />
-                <button
-                  type="button"
-                  onClick={() => addToArray('skills', skillInput, setSkillInput)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Add
-                </button>
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                {formData.skills?.map((skill, index) => (
-                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm flex items-center">
-                    {skill}
-                    <button
-                      type="button"
-                      onClick={() => removeFromArray('skills', index)}
-                      className="ml-2 text-blue-900 hover:text-blue-700"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Interests */}
-            <div className="border-b pb-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <Tag className="w-5 h-5 mr-2 text-blue-600" />
-                Interests
-              </h2>
-              
-              <div className="flex gap-2 mb-3">
-                <input
-                  type="text"
-                  value={interestInput}
-                  onChange={(e) => setInterestInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addToArray('interests', interestInput, setInterestInput))}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="e.g., AI, Web Development, Open Source"
-                />
-                <button
-                  type="button"
-                  onClick={() => addToArray('interests', interestInput, setInterestInput)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Add
-                </button>
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                {formData.interests?.map((interest, index) => (
-                  <span key={index} className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm flex items-center">
-                    {interest}
-                    <button
-                      type="button"
-                      onClick={() => removeFromArray('interests', index)}
-                      className="ml-2 text-purple-900 hover:text-purple-700"
-                    >
-                      ×
-                    </button>
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Student Specific Fields */}
-            {isStudent && (
-              <>
-                <div className="border-b pb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                    <Target className="w-5 h-5 mr-2 text-blue-600" />
-                    Student Information
-                  </h2>
-
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Current Year
-                      </label>
-                      <select
-                        name="currentYear"
-                        value={formData.currentYear}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="">Select Year</option>
-                        <option value="1">First Year</option>
-                        <option value="2">Second Year</option>
-                        <option value="3">Third Year</option>
-                        <option value="4">Fourth Year</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Enrollment Year
-                      </label>
-                      <input
-                        type="number"
-                        name="enrollmentYear"
-                        value={formData.enrollmentYear}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="e.g., 2021"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Career Goals
-                    </label>
-                    <div className="flex gap-2 mb-3">
-                      <input
-                        type="text"
-                        value={careerGoalInput}
-                        onChange={(e) => setCareerGoalInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addToArray('careerGoals', careerGoalInput, setCareerGoalInput))}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="e.g., Software Engineer at Google"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => addToArray('careerGoals', careerGoalInput, setCareerGoalInput)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        Add
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.careerGoals?.map((goal, index) => (
-                        <span key={index} className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm flex items-center">
-                          {goal}
-                          <button
-                            type="button"
-                            onClick={() => removeFromArray('careerGoals', index)}
-                            className="ml-2 text-green-900 hover:text-green-700"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Industry Preferences
-                    </label>
-                    <div className="flex gap-2 mb-3">
-                      <input
-                        type="text"
-                        value={industryPrefInput}
-                        onChange={(e) => setIndustryPrefInput(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addToArray('industryPreferences', industryPrefInput, setIndustryPrefInput))}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="e.g., Technology, Finance, Healthcare"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => addToArray('industryPreferences', industryPrefInput, setIndustryPrefInput)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                      >
-                        Add
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {formData.industryPreferences?.map((industry, index) => (
-                        <span key={index} className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm flex items-center">
-                          {industry}
-                          <button
-                            type="button"
-                            onClick={() => removeFromArray('industryPreferences', index)}
-                            className="ml-2 text-orange-900 hover:text-orange-700"
-                          >
-                            ×
-                          </button>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      name="lookingForMentor"
-                      checked={formData.lookingForMentor}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700">I'm looking for a mentor</span>
-                  </label>
-                </div>
-              </>
-            )}
-
-            {/* Alumni Specific Fields */}
-            {isAlumni && (
-              <>
-                <div className="border-b pb-6">
-                  <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                    <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
-                    Professional Information
-                  </h2>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Current Position
-                      </label>
-                      <input
-                        type="text"
-                        name="currentPosition"
-                        value={formData.currentPosition}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="e.g., Senior Software Engineer"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Current Company
-                      </label>
-                      <input
-                        type="text"
-                        name="currentCompany"
-                        value={formData.currentCompany}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="e.g., Google"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Industry
-                        </label>
-                        <input
-                          type="text"
-                          name="industry"
-                          value={formData.industry}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="e.g., Technology"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Years of Experience
-                        </label>
-                        <input
-                          type="number"
-                          name="yearsOfExperience"
-                          value={formData.yearsOfExperience}
-                          onChange={handleChange}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="e.g., 5"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Graduation Year
-                      </label>
-                      <input
-                        type="number"
-                        name="graduationYear"
-                        value={formData.graduationYear}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="e.g., 2018"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Mentorship Areas
-                      </label>
-                      <div className="flex gap-2 mb-3">
-                        <input
-                          type="text"
-                          value={mentorshipAreaInput}
-                          onChange={(e) => setMentorshipAreaInput(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addToArray('mentorshipAreas', mentorshipAreaInput, setMentorshipAreaInput))}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="e.g., Career guidance, Technical interviews"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => addToArray('mentorshipAreas', mentorshipAreaInput, setMentorshipAreaInput)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                        >
-                          Add
-                        </button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {formData.mentorshipAreas?.map((area, index) => (
-                          <span key={index} className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm flex items-center">
-                            {area}
-                            <button
-                              type="button"
-                              onClick={() => removeFromArray('mentorshipAreas', index)}
-                              className="ml-2 text-teal-900 hover:text-teal-700"
-                            >
-                              ×
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <label className="flex items-center">
-                      <input
-                        type="checkbox"
-                        name="availableAsMentor"
-                        checked={formData.availableAsMentor}
-                        onChange={handleChange}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <span className="ml-2 text-sm text-gray-700">I'm available as a mentor</span>
-                    </label>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Social Links */}
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
-                <Linkedin className="w-5 h-5 mr-2 text-blue-600" />
-                Social Links
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    LinkedIn URL
-                  </label>
-                  <input
-                    type="url"
-                    name="linkedinUrl"
-                    value={formData.linkedinUrl}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="https://linkedin.com/in/yourprofile"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    GitHub URL
-                  </label>
-                  <input
-                    type="url"
-                    name="githubUrl"
-                    value={formData.githubUrl}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="https://github.com/yourusername"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            <div className="pt-6">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-              >
-                {loading ? 'Saving...' : 'Save Profile'}
-              </button>
-            </div>
-          </form>
-        </div>
+    <div className="relative">
+      <div className="flex flex-wrap gap-1.5 p-2 border border-gray-200 rounded-xl min-h-[44px] bg-white focus-within:ring-2 focus-within:ring-violet-500 focus-within:border-transparent">
+        {tags.map(t => (
+          <span key={t} className="inline-flex items-center gap-1 bg-violet-100 text-violet-700 text-xs font-medium px-2 py-1 rounded-lg">
+            {t}
+            <button type="button" onClick={() => onRemove(t)} className="hover:text-violet-900"><X className="w-3 h-3" /></button>
+          </span>
+        ))}
+        <input value={input} onChange={e => { setInput(e.target.value); setShowSugg(true); }}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); add(input); } }}
+          className="flex-1 min-w-20 outline-none text-sm placeholder-gray-400 bg-transparent"
+          placeholder={tags.length === 0 ? placeholder : ''} />
       </div>
+      {showSugg && input && filtered.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-40 overflow-y-auto">
+          {filtered.slice(0, 6).map(s => (
+            <button key={s} type="button" onClick={() => add(s)}
+              className="w-full text-left px-3 py-2 text-sm hover:bg-violet-50 hover:text-violet-700 transition-colors">{s}</button>
+          ))}
+        </div>
+      )}
     </div>
   );
-};
+}
 
-export default SetupProfile;
+export default function SetupProfile() {
+  const { user, updateProfile } = useAuth();
+  const [form, setForm] = useState({
+    bio: '', profileHeadline: '', location: '', phoneNumber: '',
+    skills: [], interests: [], mentorshipAreas: [], careerGoals: [],
+    linkedinUrl: '', githubUrl: '', website: '',
+    currentCompany: '', currentPosition: '', industry: '',
+    isOpenToMentorship: false, lookingForMentor: false,
+  });
+  const [loading,  setLoading]  = useState(false);
+  const [fetching, setFetching] = useState(true);
+
+  useEffect(() => {
+    userAPI.getMe().then(res => {
+      const u = res.data.user;
+      setForm(f => ({
+        ...f,
+        bio:              u.bio || '',
+        profileHeadline:  u.profileHeadline || '',
+        location:         u.location || '',
+        phoneNumber:      u.phoneNumber || '',
+        skills:           u.skills || [],
+        interests:        u.interests || [],
+        mentorshipAreas:  u.mentorshipAreas || [],
+        careerGoals:      u.careerGoals || [],
+        linkedinUrl:      u.linkedinUrl || '',
+        githubUrl:        u.githubUrl || '',
+        website:          u.website || '',
+        currentCompany:   u.currentCompany || '',
+        currentPosition:  u.currentPosition || '',
+        industry:         u.industry || '',
+        isOpenToMentorship: u.isOpenToMentorship || false,
+        lookingForMentor:   u.lookingForMentor || false,
+      }));
+    }).catch(() => {}).finally(() => setFetching(false));
+  }, []);
+
+  const change = e => setForm(f => ({ ...f, [e.target.name]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const addTag    = (key, val) => setForm(f => ({ ...f, [key]: [...f[key], val] }));
+  const removeTag = (key, val) => setForm(f => ({ ...f, [key]: f[key].filter(t => t !== val) }));
+
+  const save = async e => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      await userAPI.updateProfile(form);
+      toast.success('Profile updated!');
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to update'); }
+    finally { setLoading(false); }
+  };
+
+  if (fetching) return <div className="flex justify-center py-20"><Loader className="w-8 h-8 text-violet-600 animate-spin" /></div>;
+
+  const Section = ({ icon: Icon, title, children }) => (
+    <div className="card p-6 space-y-4">
+      <h2 className="section-title flex items-center gap-2 mb-0"><Icon className="w-4 h-4 text-violet-600" />{title}</h2>
+      {children}
+    </div>
+  );
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-display font-bold text-gray-900">Edit Profile</h1>
+        <p className="text-gray-500 text-sm mt-1">Keep your profile updated to get the best from AlumniConnect</p>
+      </div>
+
+      <form onSubmit={save} className="space-y-5">
+        <Section icon={User} title="Basic Information">
+          <div>
+            <label className="label">Profile Headline</label>
+            <input name="profileHeadline" value={form.profileHeadline} onChange={change} className="input" placeholder="e.g. Software Engineer at Google | CS '22" />
+          </div>
+          <div>
+            <label className="label">Bio</label>
+            <textarea name="bio" value={form.bio} onChange={change} rows={3} className="input resize-none" placeholder="Tell your story…" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="label">Location</label><input name="location" value={form.location} onChange={change} className="input" placeholder="City, Country" /></div>
+            <div><label className="label">Phone</label><input name="phoneNumber" value={form.phoneNumber} onChange={change} className="input" placeholder="+91 …" /></div>
+          </div>
+        </Section>
+
+        {(user?.role === 'alumni') && (
+          <Section icon={Briefcase} title="Professional Info">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="label">Current Position</label><input name="currentPosition" value={form.currentPosition} onChange={change} className="input" placeholder="e.g. Software Engineer" /></div>
+              <div><label className="label">Company</label><input name="currentCompany" value={form.currentCompany} onChange={change} className="input" placeholder="e.g. Google" /></div>
+            </div>
+            <div>
+              <label className="label">Industry</label>
+              <select name="industry" value={form.industry} onChange={change} className="input">
+                <option value="">Select industry</option>
+                {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
+              </select>
+            </div>
+          </Section>
+        )}
+
+        <Section icon={Code} title="Skills & Interests">
+          <div>
+            <label className="label">Skills</label>
+            <TagInput tags={form.skills} onAdd={v => addTag('skills', v)} onRemove={v => removeTag('skills', v)} placeholder="Add skills (press Enter)…" suggestions={SKILLS_SUGGESTIONS} />
+          </div>
+          <div>
+            <label className="label">Interests</label>
+            <TagInput tags={form.interests} onAdd={v => addTag('interests', v)} onRemove={v => removeTag('interests', v)} placeholder="Add interests…" />
+          </div>
+        </Section>
+
+        <Section icon={Target} title="Mentorship">
+          <div className="flex flex-col gap-3">
+            <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer hover:border-violet-200 transition-all">
+              <input type="checkbox" name="isOpenToMentorship" checked={form.isOpenToMentorship} onChange={change} className="w-4 h-4 accent-violet-600" />
+              <div>
+                <p className="font-semibold text-sm text-gray-900">Open to Mentoring</p>
+                <p className="text-xs text-gray-500">Students can request sessions with you</p>
+              </div>
+            </label>
+            {user?.role === 'student' && (
+              <label className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer hover:border-violet-200 transition-all">
+                <input type="checkbox" name="lookingForMentor" checked={form.lookingForMentor} onChange={change} className="w-4 h-4 accent-violet-600" />
+                <div>
+                  <p className="font-semibold text-sm text-gray-900">Looking for a Mentor</p>
+                  <p className="text-xs text-gray-500">Appear in mentor matching results</p>
+                </div>
+              </label>
+            )}
+          </div>
+          {form.isOpenToMentorship && (
+            <div>
+              <label className="label">Mentorship Areas</label>
+              <TagInput tags={form.mentorshipAreas} onAdd={v => addTag('mentorshipAreas', v)} onRemove={v => removeTag('mentorshipAreas', v)} placeholder="e.g. Career Guidance, Resume Review…" />
+            </div>
+          )}
+        </Section>
+
+        <Section icon={Globe} title="Social Links">
+          <div className="space-y-3">
+            <div className="relative"><Linkedin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-500" /><input name="linkedinUrl" value={form.linkedinUrl} onChange={change} className="input pl-9" placeholder="linkedin.com/in/yourhandle" /></div>
+            <div className="relative"><Github className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-700" /><input name="githubUrl" value={form.githubUrl} onChange={change} className="input pl-9" placeholder="github.com/yourhandle" /></div>
+            <div className="relative"><Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" /><input name="website" value={form.website} onChange={change} className="input pl-9" placeholder="yourwebsite.com" /></div>
+          </div>
+        </Section>
+
+        <button type="submit" disabled={loading} className="btn-primary w-full py-3 text-base">
+          {loading ? <><Loader className="w-4 h-4 animate-spin" />Saving…</> : <><Save className="w-4 h-4" />Save Profile</>}
+        </button>
+      </form>
+    </div>
+  );
+}
