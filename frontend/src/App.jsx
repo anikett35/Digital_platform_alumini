@@ -14,6 +14,7 @@ import Register from './components/Auth/Register';
 import StudentDashboard from './components/Dashboard/StudentDashboard';
 import AlumniDashboard  from './components/Dashboard/AlumniDashboard';
 import AdminDashboard   from './components/Dashboard/AdminDashboard';
+import AdminApprovalPage from './components/Dashboard/AdminApprovalPage';
 
 import JobsList         from './components/Jobs/JobsList';
 import MessagingPage    from './components/Messaging/MessagingPage';
@@ -73,6 +74,7 @@ function AppContent() {
           <Route path="/communities"    element={<PrivateRoute><CommunitiesPage /></PrivateRoute>} />
           <Route path="/meetings"       element={<PrivateRoute><MeetingsPage /></PrivateRoute>} />
           <Route path="/insights"       element={<PrivateRoute><InsightsPage /></PrivateRoute>} />
+          <Route path="/admin/approvals" element={<PrivateRoute><AdminApprovalPage /></PrivateRoute>} />
           <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

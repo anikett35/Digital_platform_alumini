@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, User, Mail, Lock, GraduationCap, Phone, Building, AlertCircle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { toast } from 'react-toastify';
+import { Link } from 'react-router-dom';
+import { Eye, EyeOff, GraduationCap, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DEPARTMENTS = [
   'Computer Science', 'Information Technology', 'Electronics & Communication',
@@ -12,112 +13,128 @@ const DEPARTMENTS = [
 
 const THIS_YEAR = new Date().getFullYear();
 const YEARS = Array.from({ length: 30 }, (_, i) => THIS_YEAR - i);
+const FUTURE_YEARS = Array.from({ length: 6 }, (_, i) => THIS_YEAR + 5 - i);
 
 const inputBase =
-  'w-full bg-gray-50 border border-gray-200 rounded-xl py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition';
+  'w-full bg-gray-50 border rounded-xl py-2.5 px-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition';
 
-const Field = ({ label, icon: Icon, children }) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-    <div className="relative">
-      {Icon && <Icon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />}
-      {React.cloneElement(children, {
-        className: `${inputBase} ${Icon ? 'pl-9' : 'pl-3'} pr-3`
-      })}
-    </div>
-  </div>
-);
+const errClass = 'border-red-400 bg-red-50 focus:ring-red-400';
+const okClass  = 'border-gray-200';
 
 export default function Register() {
   const [form, setForm] = useState({
-    name: '', email: '',
-    // FIXED: field is 'phoneNumber' to match backend User model (was 'mobileNumber' — caused phone to never save)
-    phoneNumber: '',
-    password: '', confirmPassword: '',
-    role: 'student', department: '',
-    studentId: '', currentYear: '', enrollmentYear: '',
-    graduationYear: '', currentCompany: '', currentPosition: ''
+    name: '', email: '', password: '', confirmPassword: '',
+    role: 'student', collegeId: '', department: '', graduationYear: '',
+    currentYear: '', enrollmentYear: '',
   });
-  const [showPwd, setShowPwd]         = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [loading, setLoading]         = useState(false);
+  const [errors, setErrors]       = useState({});
+  const [showPwd, setShowPwd]     = useState(false);
+  const [showCfm, setShowCfm]     = useState(false);
+  const [loading, setLoading]     = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState('');
 
-  const { register, error, clearError } = useAuth();
-  const navigate = useNavigate();
-
-  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); if (error) clearError(); };
-  const change = e => set(e.target.name, e.target.value);
+  const set = (k, v) => {
+    setForm(f => ({ ...f, [k]: v }));
+    if (errors[k]) setErrors(e => { const n = { ...e }; delete n[k]; return n; });
+    setServerError('');
+  };
 
   const roleChange = r => setForm(f => ({
     ...f, role: r,
-    studentId: '', currentYear: '', enrollmentYear: '',
-    graduationYear: '', currentCompany: '', currentPosition: ''
+    graduationYear: '', currentYear: '', enrollmentYear: '',
   }));
 
   const validate = () => {
-    if (!form.name.trim() || !form.email.trim() || !form.department) {
-      toast.error('Please fill in all required fields'); return false;
+    const e = {};
+    if (!form.name.trim() || form.name.trim().length < 2)
+      e.name = 'Name must be at least 2 characters';
+    if (!form.email.trim() || !/^\S+@\S+\.\S+$/.test(form.email))
+      e.email = 'Enter a valid email address';
+    if (!form.password || form.password.length < 6)
+      e.password = 'Password must be at least 6 characters';
+    if (form.password !== form.confirmPassword)
+      e.confirmPassword = 'Passwords do not match';
+    if (!form.collegeId.trim() || !/^[A-Za-z0-9\-_]{3,20}$/.test(form.collegeId))
+      e.collegeId = 'College ID: 3–20 alphanumeric characters (hyphens/underscores ok)';
+    if (!form.department)
+      e.department = 'Please select your department';
+    if (form.role === 'student') {
+      if (!form.currentYear) e.currentYear = 'Required';
+      if (!form.enrollmentYear) e.enrollmentYear = 'Required';
     }
-    // FIXED: backend accepts min 6 chars — align frontend to match so registration doesn't break
-    if (form.password.length < 6) {
-      toast.error('Password must be at least 6 characters'); return false;
+    if (form.role === 'alumni') {
+      if (!form.graduationYear) e.graduationYear = 'Required';
+      else if (parseInt(form.graduationYear) > THIS_YEAR)
+        e.graduationYear = 'Alumni graduation year cannot be in the future';
     }
-    if (form.password !== form.confirmPassword) {
-      toast.error('Passwords do not match'); return false;
-    }
-    if (form.role === 'student' && (!form.currentYear || !form.enrollmentYear)) {
-      toast.error('Please fill in your current year and enrollment year'); return false;
-    }
-    if (form.role === 'alumni' && !form.graduationYear) {
-      toast.error('Please select your graduation year'); return false;
-    }
-    return true;
+    return e;
   };
 
   const handleSubmit = async e => {
     e.preventDefault();
-    if (!validate()) return;
+    const ev = validate();
+    if (Object.keys(ev).length) { setErrors(ev); return; }
+
     setLoading(true);
-
-    // FIXED: send 'phoneNumber' (backend field name), not 'mobileNumber'
-    // FIXED: removed 'batchYear' — not in backend schema
-    const payload = {
-      name:        form.name.trim(),
-      email:       form.email.trim(),
-      phoneNumber: form.phoneNumber,   // ← was 'mobileNumber' — backend ignored it
-      password:    form.password,
-      role:        form.role,
-      department:  form.department,
-      studentId:   form.studentId || undefined,
-    };
-
-    if (form.role === 'student') {
-      payload.currentYear    = +form.currentYear;
-      payload.enrollmentYear = +form.enrollmentYear;
-    } else {
-      payload.graduationYear  = +form.graduationYear;
-      payload.currentCompany  = form.currentCompany  || undefined;
-      payload.currentPosition = form.currentPosition || undefined;
-    }
-
+    setServerError('');
     try {
-      const result = await register(payload);
-      if (result.success) {
-        toast.success('🎉 Welcome aboard! Account created.');
-        navigate('/dashboard');
+      const payload = {
+        name: form.name.trim(),
+        email: form.email.toLowerCase().trim(),
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+        role: form.role,
+        collegeId: form.collegeId.toUpperCase().trim(),
+        department: form.department,
+      };
+      if (form.role === 'student') {
+        payload.currentYear    = parseInt(form.currentYear);
+        payload.enrollmentYear = parseInt(form.enrollmentYear);
       } else {
-        toast.error(result.error || 'Registration failed. Please try again.');
+        payload.graduationYear = parseInt(form.graduationYear);
       }
-    } catch {
-      toast.error('An unexpected error occurred. Please try again.');
+
+      await axios.post(`${API_URL}/api/auth/register`, payload);
+      setSubmitted(true);
+    } catch (err) {
+      setServerError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
+  // ── Success / Pending screen ──────────────────────────────────────────────
+  if (submitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-2xl border border-white/60 p-8 max-w-md w-full text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Clock className="w-8 h-8 text-amber-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Registration Submitted!</h2>
+          <p className="text-gray-600 mb-5 text-sm leading-relaxed">
+            Your account is <span className="font-semibold text-amber-600">pending admin approval</span>.
+            The admin will verify your College ID and activate your account. This usually takes 1–2 business days.
+          </p>
+          <div className="bg-indigo-50 rounded-xl p-4 text-sm text-indigo-700 mb-6 text-left space-y-1.5">
+            <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-500 shrink-0" />College ID recorded for verification</p>
+            <p className="flex items-center gap-2"><Clock className="w-4 h-4 text-amber-500 shrink-0" />Admin will review and approve</p>
+            <p className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-indigo-500 shrink-0" />You can log in after approval</p>
+          </div>
+          <Link to="/login"
+            className="block w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold hover:opacity-90 transition">
+            Go to Login
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const ic = (field) => `${inputBase} ${errors[field] ? errClass : okClass}`;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
-      {/* Background glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-indigo-200/30 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-purple-200/30 rounded-full blur-3xl" />
@@ -127,155 +144,154 @@ export default function Register() {
         <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/60 p-7">
 
           {/* Header */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-5">
             <div className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg">
               <GraduationCap className="w-7 h-7 text-white" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Create Account</h1>
-            <p className="text-sm text-gray-500 mt-1">Join your alumni network</p>
+            <p className="text-sm text-gray-500 mt-1">Join your alumni network — pending admin approval</p>
           </div>
 
-          {/* Server error banner */}
-          {error && (
+          {serverError && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl flex items-center gap-2 text-sm text-red-700">
-              <AlertCircle className="w-4 h-4 shrink-0" />{error}
+              <AlertCircle className="w-4 h-4 shrink-0" />{serverError}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
 
             {/* Role selector */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">I am a…</label>
               <div className="grid grid-cols-2 gap-3">
-                {[
-                  { v: 'student', label: 'Student',  Icon: User          },
-                  { v: 'alumni',  label: 'Alumni',   Icon: GraduationCap }
-                ].map(({ v, label, Icon }) => (
+                {[{v:'student',label:'🎓 Student'},{v:'alumni',label:'🏢 Alumni'}].map(({v,label}) => (
                   <button key={v} type="button" onClick={() => roleChange(v)}
-                    className={`flex flex-col items-center py-3 rounded-xl border-2 text-sm font-semibold transition-all
-                      ${form.role === v
-                        ? 'border-indigo-600 bg-indigo-50 text-indigo-700 shadow-md'
-                        : 'border-gray-200 text-gray-600 hover:border-indigo-300'}`}>
-                    <Icon className="w-5 h-5 mb-1" />{label}
+                    className={`py-2.5 rounded-xl border-2 text-sm font-semibold transition ${
+                      form.role === v ? 'border-indigo-600 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-indigo-300'}`}>
+                    {label}
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Full Name */}
-            <Field label="Full Name *" icon={User}>
-              <input name="name" value={form.name} onChange={change} placeholder="Your full name" required />
-            </Field>
-
-            {/* Email + Phone */}
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="Email *" icon={Mail}>
-                <input name="email" type="email" value={form.email} onChange={change} placeholder="you@example.com" required />
-              </Field>
-              {/* FIXED: field name is now 'phoneNumber' matching backend */}
-              <Field label="Mobile" icon={Phone}>
-                <input name="phoneNumber" type="tel" value={form.phoneNumber} onChange={change} placeholder="+91 ..." />
-              </Field>
+            {/* Name */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+              <input value={form.name} onChange={e => set('name', e.target.value)}
+                placeholder="Your full name" maxLength={50} className={ic('name')} />
+              {errors.name && <p className="mt-1 text-xs text-red-600">{errors.name}</p>}
             </div>
 
-            {/* Password + Confirm */}
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+              <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                placeholder="you@example.com" className={ic('email')} />
+              {errors.email && <p className="mt-1 text-xs text-red-600">{errors.email}</p>}
+            </div>
+
+            {/* College ID */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                College ID / Enrollment Number *
+              </label>
+              <input value={form.collegeId} onChange={e => set('collegeId', e.target.value)}
+                placeholder="e.g. CS2021001 or 21IT045" maxLength={20} className={ic('collegeId')} />
+              {errors.collegeId
+                ? <p className="mt-1 text-xs text-red-600">{errors.collegeId}</p>
+                : <p className="mt-1 text-xs text-gray-400">Used by admin to verify your identity</p>}
+            </div>
+
+            {/* Department + Year side by side */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
+                <select value={form.department} onChange={e => set('department', e.target.value)}
+                  className={ic('department')}>
+                  <option value="">Select...</option>
+                  {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                {errors.department && <p className="mt-1 text-xs text-red-600">{errors.department}</p>}
+              </div>
+
+              {form.role === 'student' ? (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Year *</label>
+                  <select value={form.currentYear} onChange={e => set('currentYear', e.target.value)}
+                    className={ic('currentYear')}>
+                    <option value="">Select</option>
+                    {[1,2,3,4,5,6].map(y => <option key={y} value={y}>Year {y}</option>)}
+                  </select>
+                  {errors.currentYear && <p className="mt-1 text-xs text-red-600">{errors.currentYear}</p>}
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Graduation Year *</label>
+                  <select value={form.graduationYear} onChange={e => set('graduationYear', e.target.value)}
+                    className={ic('graduationYear')}>
+                    <option value="">Select</option>
+                    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                  {errors.graduationYear && <p className="mt-1 text-xs text-red-600">{errors.graduationYear}</p>}
+                </div>
+              )}
+            </div>
+
+            {/* Student enrollment year */}
+            {form.role === 'student' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment Year *</label>
+                <select value={form.enrollmentYear} onChange={e => set('enrollmentYear', e.target.value)}
+                  className={ic('enrollmentYear')}>
+                  <option value="">Select</option>
+                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+                {errors.enrollmentYear && <p className="mt-1 text-xs text-red-600">{errors.enrollmentYear}</p>}
+              </div>
+            )}
+
+            {/* Password */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Password *</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type={showPwd ? 'text' : 'password'} name="password" value={form.password} onChange={change}
-                    className={`${inputBase} pl-9 pr-9`} placeholder="Min 6 chars" required />
+                  <input type={showPwd ? 'text' : 'password'} value={form.password}
+                    onChange={e => set('password', e.target.value)}
+                    placeholder="Min 6 chars" className={`${ic('password')} pr-9`} />
                   <button type="button" onClick={() => setShowPwd(!showPwd)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {errors.password && <p className="mt-1 text-xs text-red-600">{errors.password}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Confirm *</label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input type={showConfirm ? 'text' : 'password'} name="confirmPassword" value={form.confirmPassword} onChange={change}
-                    className={`${inputBase} pl-9 pr-9`} placeholder="Repeat password" required />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                  <input type={showCfm ? 'text' : 'password'} value={form.confirmPassword}
+                    onChange={e => set('confirmPassword', e.target.value)}
+                    placeholder="Repeat password" className={`${ic('confirmPassword')} pr-9`} />
+                  <button type="button" onClick={() => setShowCfm(!showCfm)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    {showCfm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {errors.confirmPassword && <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>}
               </div>
             </div>
 
-            {/* Department */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Department *</label>
-              <select name="department" value={form.department} onChange={change}
-                className={`${inputBase} pl-3`} required>
-                <option value="">Select department</option>
-                {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
-              </select>
+            {/* Info box */}
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-700 flex gap-2">
+              <Clock className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>Your College ID will be verified by admin before your account is activated. This typically takes 1–2 business days.</span>
             </div>
-
-            {/* Student-specific fields */}
-            {form.role === 'student' && (
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Year *</label>
-                  <select name="currentYear" value={form.currentYear} onChange={change}
-                    className={`${inputBase} pl-3`} required>
-                    <option value="">Select</option>
-                    {[1,2,3,4,5,6].map(y => <option key={y} value={y}>Year {y}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Enrollment Year *</label>
-                  <select name="enrollmentYear" value={form.enrollmentYear} onChange={change}
-                    className={`${inputBase} pl-3`} required>
-                    <option value="">Select</option>
-                    {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Alumni-specific fields */}
-            {form.role === 'alumni' && (
-              <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Graduation Year *</label>
-                    <select name="graduationYear" value={form.graduationYear} onChange={change}
-                      className={`${inputBase} pl-3`} required>
-                      <option value="">Select</option>
-                      {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Student ID</label>
-                    <input name="studentId" value={form.studentId} onChange={change}
-                      className={`${inputBase} pl-3`} placeholder="Optional" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Current Company" icon={Building}>
-                    <input name="currentCompany" value={form.currentCompany} onChange={change} placeholder="e.g. Google" />
-                  </Field>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Current Position</label>
-                    <input name="currentPosition" value={form.currentPosition} onChange={change}
-                      className={`${inputBase} pl-3`} placeholder="e.g. Engineer" />
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Submit */}
             <button type="submit" disabled={loading}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg hover:shadow-indigo-200 hover:-translate-y-0.5 transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold text-sm shadow-lg hover:opacity-90 transition disabled:opacity-60 flex items-center justify-center gap-2">
               {loading
-                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Creating…</>
-                : 'Create Account'}
+                ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />Submitting…</>
+                : 'Submit Registration'}
             </button>
           </form>
 

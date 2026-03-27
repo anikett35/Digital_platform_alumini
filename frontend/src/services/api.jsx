@@ -154,10 +154,19 @@ export const communitiesAPI = {
 // Meetings
 export const meetingsAPI = {
   requestMeeting: (data) => API.post('/meetings/request', data),
-  getMyMeetings: () => API.get('/meetings/my'),
-  acceptMeeting: (id, scheduledAt) => API.put(`/meetings/${id}/accept`, { scheduledAt }),
+  getMyMeetings: (status) => API.get('/meetings/my' + (status ? `?status=${status}` : '')),
+  acceptMeeting: (id, scheduledAt, meetingLink, note) => API.put(`/meetings/${id}/accept`, { scheduledAt, meetingLink, note }),
   rejectMeeting: (id, reason) => API.put(`/meetings/${id}/reject`, { reason }),
+  cancelMeeting: (id, reason) => API.put(`/meetings/${id}/cancel`, { reason }),
   completeMeeting: (id) => API.put(`/meetings/${id}/complete`),
+};
+
+export const adminAPI = {
+  getPendingUsers: () => API.get('/auth/pending'),
+  getAllUsers: (params) => API.get('/auth/users', { params }),
+  approveUser: (userId, action, note) => API.patch(`/auth/approve/${userId}`, { action, note }),
+  toggleUserStatus: (userId) => API.put(`/auth/users/${userId}/toggle-status`),
+  deleteUser: (userId) => API.delete(`/auth/users/${userId}`),
 };
 
 // Insights

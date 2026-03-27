@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { authAPI, eventsAPI } from '../../services/api.jsx';
 import { toast } from 'react-toastify';
@@ -9,11 +10,12 @@ import MessagingPage from '../Messaging/MessagingPage';
 import SettingsPage from './SettingsPage';
 import {
   Users, Calendar, BarChart3, Settings, MessageSquare,
-  Shield, TrendingUp, Activity, UserCheck, AlertCircle
+  Shield, TrendingUp, Activity, UserCheck, AlertCircle, Clock
 } from 'lucide-react';
 
 const tabs = [
   { id: 'dashboard', label: 'Overview',  icon: Activity },
+  { id: 'approvals', label: 'Approvals', icon: Clock },
   { id: 'users',     label: 'Users',     icon: Users },
   { id: 'events',    label: 'Events',    icon: Calendar },
   { id: 'messages',  label: 'Messages',  icon: MessageSquare },
@@ -129,6 +131,7 @@ export default function AdminDashboard() {
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard': return <Overview stats={stats} loading={loading} />;
+      case 'approvals': return <iframe src="/admin/approvals" className="w-full border-0" style={{height:'calc(100vh - 120px)'}} title="Approvals" /> || <Link to="/admin/approvals" className="text-indigo-600 underline">Open Approvals Page</Link>;
       case 'users':     return <UsersManagement />;
       case 'events':    return <EventsPage />;
       case 'messages':  return <MessagingPage />;

@@ -14,6 +14,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState(null);
 
   const { login, error, clearError } = useAuth();
   const navigate = useNavigate();
@@ -76,6 +77,7 @@ const Login = () => {
       [e.target.name]: e.target.value
     });
     if (error) clearError();
+    setApprovalStatus(null);
   };
 
   const handleSubmit = async (e) => {
@@ -100,6 +102,8 @@ const Login = () => {
           autoClose: 3000,
         });
         navigate(from, { replace: true });
+      } else if (result.approvalStatus) {
+        setApprovalStatus(result.approvalStatus);
       } else {
         toast.error(result.error || 'Login failed. Please try again.');
       }
@@ -178,6 +182,26 @@ const Login = () => {
               Sign in to continue to your network
             </p>
           </div>
+
+          {/* Approval Status Banners */}
+          {approvalStatus === 'pending' && (
+            <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+              <span className="text-2xl mt-0.5">⏳</span>
+              <div>
+                <p className="font-semibold text-amber-800 text-sm">Account Pending Approval</p>
+                <p className="text-amber-700 text-xs mt-1">Your registration is awaiting admin review. You will be able to log in once approved — typically within 1–2 business days.</p>
+              </div>
+            </div>
+          )}
+          {approvalStatus === 'rejected' && (
+            <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+              <span className="text-2xl mt-0.5">❌</span>
+              <div>
+                <p className="font-semibold text-red-800 text-sm">Registration Not Approved</p>
+                <p className="text-red-700 text-xs mt-1">Your registration was not approved. Please contact the admin for more information.</p>
+              </div>
+            </div>
+          )}
 
           {/* Error Message */}
           {error && (

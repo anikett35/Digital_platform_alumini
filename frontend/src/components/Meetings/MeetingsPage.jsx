@@ -250,7 +250,7 @@ function RejectModal({ meetingId, onClose, onRejected }) {
 }
 
 /* ─── Meeting Card ─── */
-function MeetingCard({ m, user, onAccept, onReject, onComplete }) {
+function MeetingCard({ m, user, onAccept, onReject, onComplete, onCancel }) {
   const [expanded, setExpanded] = useState(false);
   const other = user?.role === 'student' ? m.alumni : m.student;
   const badgeClass = STATUS_BADGE[m.status] || STATUS_BADGE.cancelled;
@@ -300,10 +300,16 @@ function MeetingCard({ m, user, onAccept, onReject, onComplete }) {
               </button>
             </div>
           )}
-          {m.status === 'accepted' && (
+          {m.status === 'accepted' && user?.role === 'alumni' && (
             <button onClick={() => onComplete(m._id)}
               className="text-xs text-gray-500 border border-gray-200 px-3 py-2 rounded-xl hover:bg-gray-50 shrink-0 transition">
               Mark Done
+            </button>
+          )}
+          {['pending','accepted'].includes(m.status) && (
+            <button onClick={() => onCancel(m._id)}
+              className="text-xs text-red-400 border border-red-200 px-3 py-2 rounded-xl hover:bg-red-50 shrink-0 transition">
+              Cancel
             </button>
           )}
 
@@ -332,6 +338,7 @@ export default function MeetingsPage() {
   const [showRequest, setShowRequest] = useState(false);
   const [acceptId, setAcceptId] = useState(null);
   const [rejectId, setRejectId] = useState(null);
+  const [cancelId, setCancelId] = useState(null);
 
   const fetchMeetings = useCallback(async () => {
     setLoading(true);
@@ -347,9 +354,18 @@ export default function MeetingsPage() {
   const handleComplete = async (id) => {
     try {
       await meetingsAPI.completeMeeting(id);
-      toast.success('Marked as completed!');
+      toast.success('Marked as completed! +10 reward points earned.');
       fetchMeetings();
-    } catch { toast.error('Failed'); }
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to complete meeting'); }
+  };
+
+  const handleCancel = async (id) => {
+    if (!window.confirm('Cancel this meeting request?')) return;
+    try {
+      await meetingsAPI.cancelMeeting(id);
+      toast.success('Meeting cancelled.');
+      fetchMeetings();
+    } catch (err) { toast.error(err.response?.data?.message || 'Failed to cancel meeting'); }
   };
 
   const TABS = ['pending','accepted','completed','rejected','all'];
@@ -436,7 +452,8 @@ export default function MeetingsPage() {
               <MeetingCard key={m._id} m={m} user={user}
                 onAccept={id => setAcceptId(id)}
                 onReject={id => setRejectId(id)}
-                onComplete={handleComplete} />
+                onComplete={handleComplete}
+                onCancel={handleCancel} />
             ))}
           </div>
         )}

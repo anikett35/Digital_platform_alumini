@@ -113,8 +113,14 @@ export const AuthProvider = ({ children }) => {
       return { success: true, user, token };
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Login failed';
-      dispatch({ type: AUTH_ACTIONS.SET_ERROR, payload: errorMessage });
-      return { success: false, error: errorMessage };
+      const approvalStatus = error.response?.data?.approvalStatus;
+      // Don't set global error for approval-blocked logins — Login.jsx handles display
+      if (!approvalStatus) {
+        dispatch({ type: AUTH_ACTIONS.SET_ERROR, payload: errorMessage });
+      } else {
+        dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+      }
+      return { success: false, error: errorMessage, approvalStatus };
     }
   }, [setupAxios]);
 
@@ -123,11 +129,9 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: true });
       dispatch({ type: AUTH_ACTIONS.CLEAR_ERROR });
       const response = await api.post('/api/auth/register', userData);
-      const { token, user } = response.data;
-      localStorage.setItem('token', token);
-      setupAxios(token);
-      dispatch({ type: AUTH_ACTIONS.LOGIN_SUCCESS, payload: { user, token } });
-      return { success: true, user, token };
+      dispatch({ type: AUTH_ACTIONS.SET_LOADING, payload: false });
+      // Registration now returns pending message (no token) — caller handles UI
+      return { success: true, message: response.data.message };
     } catch (error) {
       const errorMessage =
         error.response?.data?.message ||
