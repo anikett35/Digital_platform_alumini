@@ -8,6 +8,25 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['student', 'alumni', 'admin'], required: true },
   phoneNumber: { type: String, trim: true },
   location: { type: String, trim: true },
+
+  // College ID used for admin verification
+  collegeId: {
+    type: String,
+    trim: true,
+    uppercase: true,
+    required: function() { return this.role !== 'admin'; }
+  },
+
+  // Admin approval flow
+  approvalStatus: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: function() { return this.role === 'admin' ? 'approved' : 'pending'; }
+  },
+  approvalNote: { type: String, default: '' },
+  approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  approvedAt: { type: Date },
+
   studentId: { type: String, sparse: true, trim: true },
   department: { type: String, required: true, trim: true },
   currentYear: { type: Number, min: 1, max: 8 },
@@ -62,6 +81,7 @@ const userSchema = new mongoose.Schema({
   mentorshipAreas: [{ type: String, trim: true }],
   careerGoals: [{ type: String, trim: true }],
   industryPreferences: [{ type: String, trim: true }],
+  rewardPoints: { type: Number, default: 0 },
   isActive: { type: Boolean, default: true },
   profileVisibility: { type: String, enum: ['public', 'connections', 'private'], default: 'public' },
   profileStrength: { type: Number, default: 0, min: 0, max: 100 },
